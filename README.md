@@ -2,6 +2,8 @@
 
 Use at your own risk! I'm not a professional coder and I'm doing this project just for fun.
 
+Only for Binance!
+
 Installation steps:
 1. Clone this repo
 2. Use the command "pip3 install -r requirements.txt" to install the requirements.
