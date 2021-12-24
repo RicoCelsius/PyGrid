@@ -8,6 +8,9 @@ import json
 import logging
 from decimal import *
 import datetime
+from telegrammodule import *
+
+
 logging.basicConfig(filename="logfilename.log", level=logging.DEBUG, format='%(asctime)s:')
 logger = logging.getLogger()
 client = Client(API_KEY, API_KEY_SECRET)
@@ -55,28 +58,22 @@ def startup():
 startup()
 diffpercgrid = abs(round_to_tenths[0]-round_to_tenths[1])/((round_to_tenths[0]+round_to_tenths[1])/2)
 def job():
-
- 
-
-
-
-    
     print("Checking if orders have been filled...")
     if len(orderidlist) != 0:
         order = client.get_order(
     symbol=SYMBOL,
     origClientOrderId =str(orderidlist[0]))
-    if(order['status'] == 'FILLED'):
-        print('Order filled, calculating sell price...')
-        try:
-            neworder = client.order_limit_sell(
-            symbol=SYMBOL,
-            quantity=QUANTITY,
-            price=round(round_to_tenths[0]*Decimal(1+(GRIDPERC/100)),2))
-            logger.critical('Trying to remove id from list: ' + 'ORDERIDLIST: '+str(orderidlist)+' unique ID to remove: ' + str(Decimal(order['clientOrderId']) ))
-            round_to_tenths.remove(round(Decimal(order['price']),2))
-            orderidlist.remove(Decimal(order['clientOrderId']))
-        except: logger.critical('Error, please investigate price: '+ str(round(round_to_tenths[0]*Decimal(1+(GRIDPERC/100)),2)))
+        if(order['status'] == 'FILLED'):
+            print('Order filled, calculating sell price...')
+            try:
+                neworder = client.order_limit_sell(
+                symbol=SYMBOL,
+                quantity=QUANTITY,
+                price=round(round_to_tenths[0]*Decimal(1+(GRIDPERC/100)),2))
+                logger.critical('Trying to remove id from list: ' + 'ORDERIDLIST: '+str(orderidlist)+' unique ID to remove: ' + str(Decimal(order['clientOrderId']) ))
+                round_to_tenths.remove(round(Decimal(order['price']),2))
+                orderidlist.remove(Decimal(order['clientOrderId']))
+            except: logger.critical('Error, please investigate price: '+ str(round(round_to_tenths[0]*Decimal(1+(GRIDPERC/100)),2)))
     
     print("Checking if bot can create new buy orders...")
     print(str(orderidlist))
@@ -133,6 +130,8 @@ def job():
 
 
 
+def getlatesttradetime():
+    return str(client.get_historical_trades(symbol=SYMBOL,limit=1)[0]['time'])
 
 
 
