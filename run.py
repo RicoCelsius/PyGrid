@@ -92,46 +92,42 @@ def job():
 
     
     print('Checking if orders are still inside range')
-    v1 = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
-   
-    v2 = round(round_to_tenths[0])
 
-    cancelorderat = 0.2 #from highest grid
-    currentgap = abs((v2-v1)/v1)
 
-    
-
-    maxgap = diffpercgrid
-
-    if currentgap > maxgap:
-        newprice = round(Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])-stepsize,2)
-        if Decimal(newprice) > Decimal(round_to_tenths[0])*(1+(Decimal(GRIDPERC)/100)):
-            try:
-                print('Cancelling lowest order and bringing it on top')
-                client.cancel_order(
-                symbol=SYMBOL,
-                origClientOrderId=orderidlist[-1]
-                )
-                round_to_tenths.pop(-1)
-                orderidlist.pop(-1)
+    if 1 > 0:
+        try:
+            newprice = round(Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])-stepsize,2)
+            if Decimal(newprice) > Decimal(round_to_tenths[0])*(1+(Decimal(GRIDPERC)/100)):
+                try:
+                    print('Cancelling lowest order and bringing it on top')
+                    client.cancel_order(
+                    symbol=SYMBOL,
+                    origClientOrderId=orderidlist[-1]
+                    )
+                    round_to_tenths.pop(-1)
+                    orderidlist.pop(-1)
             
-                r1 = random.randint(0, 100000)
-                neworder = client.order_limit_buy(
-                symbol=SYMBOL,
-               quantity=QUANTITY,
-                price=newprice,
-                newClientOrderId = str(r1))
-                orderidlist.insert(0,r1)
-                round_to_tenths.insert(0,newprice)
-            except:
-                print("Order doesnt exist")
+                    r1 = random.randint(0, 100000)
+                    neworder = client.order_limit_buy(
+                    symbol=SYMBOL,
+                quantity=QUANTITY,
+                    price=newprice,
+                    newClientOrderId = str(r1))
+                    orderidlist.insert(0,r1)
+                    round_to_tenths.insert(0,newprice)
+                except:
+                    print("Order doesnt exist")
+        except: print("Time out")
 
 
 
 
 
 def getlatesttradetime():
-    return str(client.get_historical_trades(symbol=SYMBOL,limit=1)[0]['time'])
+    try:
+        return str(client.get_historical_trades(symbol=SYMBOL,limit=1)[0]['time'])
+    except: pass
+    
 
 
 
