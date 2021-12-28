@@ -17,9 +17,10 @@ client = Client(API_KEY, API_KEY_SECRET)
 currentprice = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
 stepsize = Decimal(Decimal(GRIDPERC)/Decimal(100)*currentprice)
 step = 1
-balance = client.get_asset_balance(asset='USDT')
+
 stepprice = [currentprice-stepsize]
 orderidlist = []
+enoughBalance = False
 
 
 
@@ -32,32 +33,34 @@ while step < GRIDS:
 round_to_tenths = [round(num, 2) for num in stepprice]
 
 
+
 def startup():
-    logger.info(str(datetime.datetime.now()) + ' Starting script...')
+    balanceChecker()
     orders = client.get_open_orders(symbol=SYMBOL)
     amountbuyorders = len(orders)
-    if amountbuyorders == 0:
-        counter = 0
-        print('No buy orders open. creating orders.')
-        
-        
-        while(len(client.get_open_orders(symbol=SYMBOL)) < GRIDS):
-            r1 = random.randint(0, 100000)
-            neworder = client.order_limit_buy(
-            symbol=SYMBOL,
-            quantity=QUANTITY,
-            price=round_to_tenths[counter],
-            newClientOrderId = str(r1))
-            orderidlist.append(r1)
-            print('ORDER LIST' + str(orderidlist))
-            if(counter < len(client.get_open_orders(symbol=SYMBOL))):
-                counter += 1
+    if enoughBalance == True:
+        if amountbuyorders == 0:
+            counter = 0
+            print('No buy orders open. creating orders.')
+            while(len(client.get_open_orders(symbol=SYMBOL)) < GRIDS):
+                r1 = random.randint(0, 100000)
+                neworder = client.order_limit_buy(
+                symbol=SYMBOL,
+                quantity=QUANTITY,
+                price=round_to_tenths[counter],
+                newClientOrderId = str(r1))
+                orderidlist.append(r1)
+                print('ORDER LIST' + str(orderidlist))
+                if(counter < len(client.get_open_orders(symbol=SYMBOL))):
+                    counter += 1
+        else: print("Not sufficient funds to create buy orders") 
             
             
     
 startup()
-diffpercgrid = abs(round_to_tenths[0]-round_to_tenths[1])/((round_to_tenths[0]+round_to_tenths[1])/2)
+
 def job():
+    balanceChecker()
     print("Checking if orders have been filled...")
     if len(orderidlist) != 0:
         order = client.get_order(
@@ -77,23 +80,23 @@ def job():
     
     print("Checking if bot can create new buy orders...")
     print(str(orderidlist))
-    if len(orderidlist) < GRIDS:
-            r1 = random.randint(0, 100000)
-            price = round((min(round_to_tenths))-stepsize,2)
-            neworder = client.order_limit_buy(
-            symbol=SYMBOL,
-            quantity=QUANTITY,
-            price=price,
-            newClientOrderId = str(r1)
-            )
-            orderidlist.append(r1)
-            print("Appended it now, "+str(orderidlist))
-            round_to_tenths.append(price)
+    if enoughBalance == True:
+        if len(orderidlist) < GRIDS:
+                r1 = random.randint(0, 100000)
+                price = round((min(round_to_tenths))-stepsize,2)
+                neworder = client.order_limit_buy(
+                symbol=SYMBOL,
+                quantity=QUANTITY,
+                price=price,
+                newClientOrderId = str(r1)
+                )
+                orderidlist.append(r1)
+                print("Appended it now, "+str(orderidlist))
+                round_to_tenths.append(price)
+        else: print("Not sufficient funds to create buy orders")
 
     
     print('Checking if orders are still inside range')
-
-
     if 1 > 0:
         try:
             newprice = round(Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])-stepsize,2)
@@ -120,6 +123,17 @@ def job():
         except: print("Time out")
 
 
+
+def balanceChecker():
+    try: 
+        currentprice = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
+        balance = client.get_asset_balance(asset='USDT')
+        if balance < (QUANTITY*currentprice):
+            enoughBalance = False
+            print("Insufficient funds to create buy orders")
+        else:
+            enoughBalance = True
+    except: pass
 
 
 
