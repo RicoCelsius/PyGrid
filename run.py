@@ -23,6 +23,21 @@ orderidlist = []
 enoughBalance = False
 
 
+def balanceChecker():
+    try:
+            currentprice = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
+            balance = client.get_asset_balance(asset='USDT')['free']
+            buyorder = Decimal(QUANTITY)*currentprice
+            print("buyorder in dollars: " + str(buyorder))
+            print(str(balance))
+            global enoughBalance
+            if Decimal(balance) < buyorder:
+                enoughBalance = False
+                print("Insufficient funds to create buy orders")
+            else:
+                enoughBalance = True
+    except: print("Oops! something went wrong!")
+    pass
 
 
 
@@ -38,6 +53,7 @@ def startup():
     balanceChecker()
     orders = client.get_open_orders(symbol=SYMBOL)
     amountbuyorders = len(orders)
+    print("Enough balance?" + str(enoughBalance))
     if enoughBalance == True:
         if amountbuyorders == 0:
             counter = 0
@@ -93,7 +109,7 @@ def job():
                 orderidlist.append(r1)
                 print("Appended it now, "+str(orderidlist))
                 round_to_tenths.append(price)
-        else: print("Not sufficient funds to create buy orders")
+    else: print("Not sufficient funds to create buy orders")
 
     
     print('Checking if orders are still inside range')
@@ -124,16 +140,6 @@ def job():
 
 
 
-def balanceChecker():
-    try: 
-        currentprice = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
-        balance = client.get_asset_balance(asset='USDT')
-        if balance < (QUANTITY*currentprice):
-            enoughBalance = False
-            print("Insufficient funds to create buy orders")
-        else:
-            enoughBalance = True
-    except: pass
 
 
 
