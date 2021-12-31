@@ -10,8 +10,8 @@ from decimal import *
 import datetime
 from telegrammodule import *
 
-
-logging.basicConfig(filename="logfilename.log", level=logging.DEBUG, format='%(asctime)s:')
+Log_Format = "%(levelname)s %(asctime)s - %(message)s"
+logging.basicConfig(filename="logs.log", level=logging.INFO, format = Log_Format)
 logger = logging.getLogger()
 client = Client(API_KEY, API_KEY_SECRET)
 currentprice = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
@@ -37,6 +37,7 @@ def balanceChecker():
             else:
                 enoughBalance = True
     except: print("Oops! something went wrong!")
+    logging.exception('')
     pass
 
 
@@ -53,7 +54,6 @@ def startup():
     balanceChecker()
     orders = client.get_open_orders(symbol=SYMBOL)
     amountbuyorders = len(orders)
-    print("Enough balance?" + str(enoughBalance))
     if enoughBalance == True:
         if amountbuyorders == 0:
             counter = 0
@@ -89,10 +89,12 @@ def job():
                 symbol=SYMBOL,
                 quantity=QUANTITY,
                 price=round(round_to_tenths[0]*Decimal(1+(GRIDPERC/100)),2))
-                logger.critical('Trying to remove id from list: ' + 'ORDERIDLIST: '+str(orderidlist)+' unique ID to remove: ' + str(Decimal(order['clientOrderId']) ))
+                logger.info('Trying to remove id from list: ' + 'ORDERIDLIST: '+str(orderidlist)+' unique ID to remove: ' + str(Decimal(order['clientOrderId']) ))
                 round_to_tenths.remove(round(Decimal(order['price']),2))
-                orderidlist.remove(Decimal(order['clientOrderId']))
-            except: logger.critical('Error, please investigate price: '+ str(round(round_to_tenths[0]*Decimal(1+(GRIDPERC/100)),2)))
+                orderidlist.remove(Decimal(order['clientOrderId'])) 
+            except: 
+                logging.exception('')
+                logger.info('Error, please investigate price: '+ str(round(round_to_tenths[0]*Decimal(1+(GRIDPERC/100)),2)))
     
     print("Checking if bot can create new buy orders...")
     print(str(orderidlist))
@@ -109,13 +111,16 @@ def job():
                 orderidlist.append(r1)
                 print("Appended it now, "+str(orderidlist))
                 round_to_tenths.append(price)
-    else: print("Not sufficient funds to create buy orders")
+    else: 
+        logger.info("Error with creating buy orders")
+        print("Not sufficient funds to create buy orders")
 
     
     print('Checking if orders are still inside range')
     if 1 > 0:
         try:
             newprice = round(Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])-stepsize,2)
+            logger.info("Bughunt, newprice is " + str(newprice) + "Round_to_tenths[0] is" + str(Decimal(round_to_tenths[0])) + "1+(Decimal(GRIDPERC)/100) is " + str(1+(Decimal(GRIDPERC)/100)))
             if Decimal(newprice) > Decimal(round_to_tenths[0])*(1+(Decimal(GRIDPERC)/100)):
                 try:
                     print('Cancelling lowest order and bringing it on top')
@@ -125,18 +130,19 @@ def job():
                     )
                     round_to_tenths.pop(-1)
                     orderidlist.pop(-1)
-            
                     r1 = random.randint(0, 100000)
                     neworder = client.order_limit_buy(
                     symbol=SYMBOL,
-                quantity=QUANTITY,
+                    quantity=QUANTITY,
                     price=newprice,
                     newClientOrderId = str(r1))
                     orderidlist.insert(0,r1)
                     round_to_tenths.insert(0,newprice)
                 except:
                     print("Order doesnt exist")
-        except: print("Time out")
+                    logging.exception('')
+        except:
+            logging.exception('')
 
 
 
@@ -158,7 +164,7 @@ def getlatesttradetime():
     
 
 print('Welcome to PyGRID v0.1')
-schedule.every(1).seconds.do(job)
+schedule.every(2).seconds.do(job)
 
 while 1:
    schedule.run_pending()
