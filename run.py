@@ -17,7 +17,7 @@ client = Client(API_KEY, API_KEY_SECRET)
 currentprice = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
 stepsize = Decimal(Decimal(GRIDPERC)/Decimal(100)*currentprice)
 step = 1
-isAPIAvailable = True
+isAPIAvailable = False
 stepprice = [currentprice-stepsize]
 orderidlist = []
 enoughBalance = False
@@ -73,14 +73,13 @@ def startup():
             
             
 def connectivityCheck():
+    global isAPIAvailable
     print("Checking connectivity to binance API...")
     try:
-        global isAPIAvailable
         client.ping()
         isAPIAvailable = True
     except:
         print("Binance API not available")
-        global isAPIAvailable
         isAPIAvailable = False
         
 
