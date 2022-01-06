@@ -3,6 +3,8 @@ from binance.client import Client
 from config import *
 from binance.enums import *
 import schedule
+from time import *
+from random import *
 import time
 import random
 import json
@@ -12,7 +14,7 @@ from datetime import datetime
 # from telegrammodule import *
 
 
-print('Welcome to PyGRID v0.1')
+print('Welcome to PyGRID v0.2')
 client = Client(API_KEY, API_KEY_SECRET)
 currentprice = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
 stepsize = Decimal(Decimal(GRIDPERC)/Decimal(100)*currentprice)
@@ -52,7 +54,7 @@ def balanceChecker():
                 print("Insufficient funds to create buy orders")
             else:
                 enoughBalance = True
-    except: print("Oops! something went wrong!")
+    except Exception as e: print(e)
 
 
 
@@ -66,10 +68,10 @@ round_to_tenths = [round(num, 2) for num in stepprice]
 
 def startup():
     balanceChecker()
-
     if enoughBalance == True:
             counter = 0
             print('Creating buy orders...')
+            autoBuyBNB()
             while(counter < GRIDS):
                 print(str(round_to_tenths[counter]))
                 r1 = random.randint(0, 1000000)
@@ -82,7 +84,6 @@ def startup():
                 print(str(buyOrders))
                 counter = counter + 1
 
-    getSellPriceHighestBuyOrder()
             
             
 def connectivityCheck():
@@ -95,24 +96,31 @@ def connectivityCheck():
         print("Binance API not available")
         isAPIAvailable = False
         
+def autoBuyBNB():
+    if(AUTO_BUY_BNB == True):
+        sleep(randint(1,5))
+        balance = client.get_asset_balance(asset='BNB')['free']
+        if Decimal(balance) <= 0.1:
+            try:
+                print("Not enough BNB in wallet, bot will market buy 0.1 BNB")
+                order = client.order_market_buy(
+                symbol='BNBUSDT',
+                quantity=0.1)
+            except Exception as e:
+                print(e)
 
-
+        
     
 startup()
 
 def job():
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-
-
-
-
     connectivityCheck()
     if isAPIAvailable == True:
         print(dt_string + " Binance API is available")
         balanceChecker()
         print(dt_string + " Checking if orders have been filled...")
-
 
         try:
             if len(buyOrders) != 0:
@@ -166,8 +174,6 @@ def job():
                 maxBuyOrder = Decimal(max(buyOrders.values()))
                 threshold = (maxBuyOrder)*(1+(Decimal(2*GRIDPERC)/100))
                 print("Max buy order = "+ str(maxBuyOrder) + " Threshold = "+ str(threshold) + "Curr price =" + str(currentprice))
-
-
                 if Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100)):
                     try:
                         print(dt_string + 'Cancelling lowest order and bringing it on top')
@@ -193,22 +199,9 @@ def job():
                 print(e)
 
 
-
-
-
-
-    
-
-
-
-
-    
-        
-
-    
-
-
 schedule.every(2).seconds.do(job)
+if AUTO_BUY_BNB: schedule.every(10).seconds.do(autoBuyBNB)
+
 
 while 1:
    schedule.run_pending()
