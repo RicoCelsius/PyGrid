@@ -1,3 +1,4 @@
+import builtins
 from binance.client import Client
 from config import *
 from binance.enums import *
@@ -7,20 +8,35 @@ import random
 import json
 import logging
 from decimal import *
-import datetime
-from telegrammodule import *
+from datetime import datetime
+# from telegrammodule import *
 
-Log_Format = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(filename="logs.log", level=logging.INFO, format = Log_Format)
-logger = logging.getLogger()
+
+print('Welcome to PyGRID v0.1')
 client = Client(API_KEY, API_KEY_SECRET)
 currentprice = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
 stepsize = Decimal(Decimal(GRIDPERC)/Decimal(100)*currentprice)
 step = 1
 isAPIAvailable = False
 stepprice = [currentprice-stepsize]
-orderidlist = []
+
 enoughBalance = False
+
+buyOrders = {}
+
+def saveOrder(orderid, price):
+    buyOrders[orderid] = price
+
+
+
+def getSellPriceHighestBuyOrder():
+    if buyOrders:
+        highestValue = max(buyOrders.values())
+        print(highestValue)
+        sellPrice = Decimal(round(highestValue * Decimal(((GRIDPERC/100)+1)),2))
+        print(sellPrice)
+        return sellPrice
+
 
 
 def balanceChecker():
@@ -37,8 +53,6 @@ def balanceChecker():
             else:
                 enoughBalance = True
     except: print("Oops! something went wrong!")
-    logging.exception('')
-    pass
 
 
 
@@ -52,24 +66,23 @@ round_to_tenths = [round(num, 2) for num in stepprice]
 
 def startup():
     balanceChecker()
-    orders = client.get_open_orders(symbol=SYMBOL)
-    amountbuyorders = len(orders)
+
     if enoughBalance == True:
-        if amountbuyorders == 0:
             counter = 0
-            print('No buy orders open. creating orders.')
-            while(len(client.get_open_orders(symbol=SYMBOL)) < GRIDS):
-                r1 = random.randint(0, 100000)
+            print('Creating buy orders...')
+            while(counter < GRIDS):
+                print(str(round_to_tenths[counter]))
+                r1 = random.randint(0, 1000000)
                 neworder = client.order_limit_buy(
                 symbol=SYMBOL,
                 quantity=QUANTITY,
                 price=round_to_tenths[counter],
                 newClientOrderId = str(r1))
-                orderidlist.append(r1)
-                print('ORDER LIST' + str(orderidlist))
-                if(counter < len(client.get_open_orders(symbol=SYMBOL))):
-                    counter += 1
-        else: print("Not sufficient funds to create buy orders") 
+                saveOrder(str(r1),round_to_tenths[counter])
+                print(str(buyOrders))
+                counter = counter + 1
+
+    getSellPriceHighestBuyOrder()
             
             
 def connectivityCheck():
@@ -88,86 +101,96 @@ def connectivityCheck():
 startup()
 
 def job():
+    now = datetime.now()
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+
+
+
+
     connectivityCheck()
     if isAPIAvailable == True:
-        print("Binance API is available")
-
-
-
-
-
+        print(dt_string + " Binance API is available")
         balanceChecker()
-        print("Checking if orders have been filled...")
+        print(dt_string + " Checking if orders have been filled...")
 
 
         try:
-            if len(orderidlist) != 0:
+            if len(buyOrders) != 0:
                 order = client.get_order(
             symbol=SYMBOL,
-            origClientOrderId =str(orderidlist[0]))
+            origClientOrderId =str(max(buyOrders,key=buyOrders.get)))
                 if(order['status'] == 'FILLED'):
-                    print('Order filled, calculating sell price...')
+                    print(dt_string +' Order filled, calculating sell price...')
+                    sellPrice = getSellPriceHighestBuyOrder()
                     try:
                         neworder = client.order_limit_sell(
                         symbol=SYMBOL,
                         quantity=QUANTITY,
-                        price=round(round_to_tenths[0]*Decimal(1+(GRIDPERC/100)),2))
-                        logger.info('Trying to remove id from list: ' + 'ORDERIDLIST: '+str(orderidlist)+' unique ID to remove: ' + str(Decimal(order['clientOrderId']) ))
-                        round_to_tenths.pop(0)
-                        orderidlist.pop(0)
-                    except: 
-                        logging.exception('')
-                        logger.info('Error, please investigate price: '+ str(round(round_to_tenths[0]*Decimal(1+(GRIDPERC/100)),2)))
-        except: logger.exception('')
+                        price=sellPrice)
+                        print(dt_string + " SELL ORDER PLACED AT PRICE " + str(sellPrice) + " BUY ORDER was at " + str(list(buyOrders.values())[0]))
+                        buyOrders.pop(max(buyOrders, key=buyOrders.get))
+                    except Exception as e: 
+                        print("Error occured at codeblock creating sell order (1)")
+                        print(e)
+        except Exception as e: 
+            print("Error occured at codeblock creating sell order (2)")
+            print(e)
+
 
         
         print("Checking if bot can create new buy orders...")
-        print(str(orderidlist))
+        print("Len buyorders = "+str(len(buyOrders)) +" GRIDS = "+str(GRIDS))
         if enoughBalance == True:
-            if len(orderidlist) < GRIDS:
-                    r1 = random.randint(0, 100000)
-                    price = round((min(round_to_tenths))-stepsize,2)
-                    neworder = client.order_limit_buy(
-                    symbol=SYMBOL,
-                    quantity=QUANTITY,
-                    price=price,
-                    newClientOrderId = str(r1)
-                    )
-                    orderidlist.append(r1)
-                    print("Appended it now, "+str(orderidlist))
-                    round_to_tenths.append(price)
+            if len(buyOrders) < GRIDS:
+                    r1 = random.randint(0, 1000000)
+                    price = round(Decimal(min(buyOrders.values()))-stepsize,2)
+                    print("Can create new buy order(s)"+ "price= "+ str(price)+ "orderid=" + str(r1))
+                    try:
+                        neworder = client.order_limit_buy(
+                        symbol=SYMBOL,
+                        quantity=QUANTITY,
+                        price=price,
+                        newClientOrderId = str(r1)
+                        )
+                        saveOrder(str(r1), price)  
+                        print("Saved order to dict")                 
+                    except Exception as e: print(e) 
         else: 
-            logger.info("Error with creating buy orders")
             print("Not sufficient funds to create buy orders")
 
         
         print('Checking if orders are still inside range')
         if 1 > 0:
             try:
-                newprice = round(Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])-stepsize,2)
-                logger.info("Bughunt, newprice is " + str(newprice) + "Round_to_tenths[0] is" + str(Decimal(round_to_tenths[0])) + "1+(Decimal(GRIDPERC)/100) is " + str(1+(Decimal(GRIDPERC)/100)))
-                if Decimal(newprice) > Decimal(round_to_tenths[0])*(1+(Decimal(GRIDPERC)/100)):
+                currentSetPrice = round(Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])-stepsize,2)
+                maxBuyOrder = Decimal(max(buyOrders.values()))
+                threshold = (maxBuyOrder)*(1+(Decimal(2*GRIDPERC)/100))
+                print("Max buy order = "+ str(maxBuyOrder) + " Threshold = "+ str(threshold) + "Curr price =" + str(currentprice))
+
+
+                if Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100)):
                     try:
-                        print('Cancelling lowest order and bringing it on top')
+                        print(dt_string + 'Cancelling lowest order and bringing it on top')
+                        orderToPop = min(buyOrders, key=buyOrders.get)
+                        print(str(orderToPop))
                         client.cancel_order(
                         symbol=SYMBOL,
-                        origClientOrderId=orderidlist[-1]
-                        )
-                        round_to_tenths.pop(-1)
-                        orderidlist.pop(-1)
+                        origClientOrderId=orderToPop)
+                        buyOrders.pop(orderToPop)
+                        print("Adding buy order bug1")
+                    #adding buy order
                         r1 = random.randint(0, 1000000)
                         neworder = client.order_limit_buy(
                         symbol=SYMBOL,
                         quantity=QUANTITY,
-                        price=newprice,
+                        price=currentSetPrice,
                         newClientOrderId = str(r1))
-                        orderidlist.insert(0,r1)
-                        round_to_tenths.insert(0,newprice)
-                    except:
-                        print("Order doesnt exist")
-                        logging.exception('')
-            except:
-                logging.exception('')
+                        saveOrder(str(r1),currentSetPrice)
+                        print("Adding buy order bug2")
+                    except Exception as e:
+                        print(e)
+            except Exception as e:
+                print(e)
 
 
 
@@ -184,7 +207,7 @@ def job():
 
     
 
-print('Welcome to PyGRID v0.1')
+
 schedule.every(2).seconds.do(job)
 
 while 1:
