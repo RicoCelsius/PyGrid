@@ -16,11 +16,16 @@ Tip: Use PM2 to manage the process.
 
 Bug reports will be appreciated.
 
+Features:
+- Trades assets in a grid-like manner. The grids are dynamic; this means there's no hassle with choosing a range!
+- Automatically buys BNB to pay for trading fees if your BNB balance is < 0.1
+
+
+
 Upcoming features:
 - Telegram messages
 - Compounding
 - Slow mode -> this means no extra buy orders will be created when price moves up and fills sell orders.
-- BNB buy mode -> Bot will buy more BNB when there is almost no BNB left in your wallet to pay fees
 - Complete refactoring of code
 
 
