@@ -23,7 +23,5 @@ Upcoming features:
 - BNB buy mode -> Bot will buy more BNB when there is almost no BNB left in your wallet to pay fees
 - Complete refactoring of code
 
-If you feel generous:
-terra1m9re0arlxym2re2vnjk8wfjytt89lf3c6mfjcz
 
 Thanks!
