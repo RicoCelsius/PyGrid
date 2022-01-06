@@ -100,7 +100,7 @@ def autoBuyBNB():
     if(AUTO_BUY_BNB == True):
         sleep(randint(1,5))
         balance = client.get_asset_balance(asset='BNB')['free']
-        if Decimal(balance) <= 0.1:
+        if Decimal(balance) <= 0.5:
             try:
                 print("Not enough BNB in wallet, bot will market buy 0.1 BNB")
                 order = client.order_market_buy(
