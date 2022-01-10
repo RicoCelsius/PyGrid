@@ -11,7 +11,8 @@ import json
 import logging
 from decimal import *
 from datetime import datetime
-# from telegrammodule import *
+from telegrammodule import main
+import threading
 
 
 print('Welcome to PyGRID v0.2')
@@ -38,6 +39,8 @@ def getSellPriceHighestBuyOrder():
         sellPrice = Decimal(round(highestValue * Decimal(((GRIDPERC/100)+1)),2))
         print(sellPrice)
         return sellPrice
+
+
 
 
 
@@ -198,11 +201,27 @@ def job():
             except Exception as e:
                 print(e)
 
+def startjob():
+    schedule.every(2).seconds.do(job)
+    if AUTO_BUY_BNB: schedule.every(10).seconds.do(autoBuyBNB)
 
-schedule.every(2).seconds.do(job)
-if AUTO_BUY_BNB: schedule.every(10).seconds.do(autoBuyBNB)
 
+
+
+
+try:
+    t2 = threading.Thread(target=startjob())
+    t2.start()
+    t1 = threading.Thread(target=main())
+    t1.start()
+except Exception as e:
+    print("Something went wrong with threading")
+    print(e)
 
 while 1:
-   schedule.run_pending()
-   time.sleep(1)
+    schedule.run_pending()
+    time.sleep(1)
+
+
+
+
