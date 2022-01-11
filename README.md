@@ -11,6 +11,9 @@ Installation steps:
 4. Make sure you pay trading fees with BNB, else the bot will get stuck eventually.
 5. Use the command "python3 run.py" to start the bot.
 
+TG Commands:
+/balance
+
 Tip: Use PM2 to manage the process.
 
 
