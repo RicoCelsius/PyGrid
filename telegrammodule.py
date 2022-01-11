@@ -22,8 +22,8 @@ def start(update: Update, context: CallbackContext) -> None:
         reply_markup=ForceReply(selective=True),
     )
 
-# def startup(update: Update, context: CallbackContext):
-#     context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
+def startup(update: Update, context: CallbackContext):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
     
 
 def main() -> None:
@@ -33,6 +33,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("balance",balance))
     updater.start_polling()
+    
 
     
     #updater.idle() commented out for threading
