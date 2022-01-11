@@ -28,11 +28,13 @@ def startup(update: Update, context: CallbackContext):
 
 def main() -> None:
     """Start the bot."""
-    updater = Updater(TG_TOKEN)
-    dispatcher = updater.dispatcher
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("balance",balance))
-    updater.start_polling()
+
+    if TG_ENABLED == True:
+        updater = Updater(TG_TOKEN)
+        dispatcher = updater.dispatcher
+        dispatcher.add_handler(CommandHandler("start", start))
+        dispatcher.add_handler(CommandHandler("balance",balance))
+        updater.start_polling()
     
 
     
