@@ -10,9 +10,9 @@ import random
 from decimal import *
 from datetime import datetime
 from telegrammodule import main
-from binancedata import getQuantity
+from binancedata import getQuantity,getDecimalAmounts
 import threading
-
+import math
 
 
 print('Welcome to PyGRID v0.2')
@@ -27,6 +27,12 @@ enoughBalance = False
 
 buyOrders = {}
 buyOrderQuantity = {}
+
+def truncate(number) -> Decimal:
+    stepper = Decimal(10.0) ** Decimal(getDecimalAmounts(SYMBOL))
+    return Decimal(math.trunc(Decimal(stepper) * Decimal(number)) / Decimal(stepper))
+
+
 
 def saveOrder(orderid,price,quantity=0):
     buyOrders[orderid] = price
@@ -43,7 +49,7 @@ def getSellPriceHighestBuyOrder():
     if buyOrders:
         highestValue = max(buyOrders.values())
         print(highestValue)
-        sellPrice = Decimal(round(highestValue * Decimal(((GRIDPERC/100)+1)),2))
+        sellPrice = Decimal(truncate(highestValue * Decimal(((GRIDPERC/100)+1))))
         print(sellPrice)
         return sellPrice
 
@@ -72,7 +78,7 @@ while step < GRIDS:
     stepprice.append(stepprice[step-1]-stepsize)
     step += 1
 
-round_to_tenths = [round(num, 2) for num in stepprice]
+round_to_tenths = [truncate(num) for num in stepprice]
 
 
 
@@ -166,7 +172,7 @@ def job():
         if enoughBalance == True:
             if len(buyOrders) < GRIDS and len(buyOrders) != 0:
                     r1 = random.randint(0, 1000000)
-                    price = round(Decimal(min(buyOrders.values()))-stepsize,2)
+                    price = truncate(Decimal(min(buyOrders.values()))-stepsize)
                     print("Can create new buy order(s)"+ "price= "+ str(price)+ "orderid=" + str(r1))
                     variableQuantity = getQuantity()
                     try:
@@ -186,7 +192,7 @@ def job():
         print('Checking if orders are still inside range')
         if 1 > 0:
             try:
-                currentSetPrice = round(Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])-stepsize,2)
+                currentSetPrice = truncate(Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])-stepsize)
                 maxBuyOrder = Decimal(max(buyOrders.values()))
                 threshold = (maxBuyOrder)*(1+(Decimal(2*GRIDPERC)/100))
                 print("Max buy order = "+ str(maxBuyOrder) + " Threshold = "+ str(threshold) + "Curr price =" + str(currentprice))

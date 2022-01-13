@@ -28,7 +28,6 @@ def startup(update: Update, context: CallbackContext):
 
 def main() -> None:
     """Start the bot."""
-
     if TG_ENABLED == True:
         updater = Updater(TG_TOKEN)
         dispatcher = updater.dispatcher

@@ -1,14 +1,25 @@
 import builtins
+from urllib import request
 from binance.client import Client
 from binance.enums import *
 from config import API_KEY,API_KEY_SECRET,COMPOUND_WALLET_PERC,SYMBOL,COMPOUND,QUANTITY
 from decimal import *
-
+import json
+import requests
+import math
 client = Client(API_KEY, API_KEY_SECRET)
 
 def getBalance():
     balance = client.get_asset_balance(asset='USDT')['free']
     return str(balance)
+
+def getDecimalAmounts(symbol):
+    response = requests.get("https://api.binance.com/api/v3/exchangeInfo?symbol="+symbol)
+    minQty = float(response.json()["symbols"][0]["filters"][2]["minQty"])
+    amountDecimals = int(len(str(minQty).split('.')[-1]))
+    return amountDecimals
+    
+
 
 def getQuantity():
     if COMPOUND == True:
