@@ -7,12 +7,12 @@ from time import *
 from random import *
 import time
 import random
-import json
-import logging
 from decimal import *
 from datetime import datetime
 from telegrammodule import main
+from binancedata import getQuantity
 import threading
+
 
 
 print('Welcome to PyGRID v0.2')
@@ -26,10 +26,17 @@ stepprice = [currentprice-stepsize]
 enoughBalance = False
 
 buyOrders = {}
+buyOrderQuantity = {}
 
-def saveOrder(orderid, price):
+def saveOrder(orderid,price,quantity=0):
     buyOrders[orderid] = price
+    buyOrderQuantity[orderid] = quantity
 
+
+#get order quantity, only for sell orders
+def getOrderQuantity(orderid):
+    if buyOrderQuantity:
+     return buyOrderQuantity[orderid]
 
 
 def getSellPriceHighestBuyOrder():
@@ -80,11 +87,12 @@ def startup():
                 r1 = random.randint(0, 1000000)
                 neworder = client.order_limit_buy(
                 symbol=SYMBOL,
-                quantity=QUANTITY,
+                quantity=getQuantity(),
                 price=round_to_tenths[counter],
                 newClientOrderId = str(r1))
-                saveOrder(str(r1),round_to_tenths[counter])
-                print(str(buyOrders))
+                saveOrder(str(r1),round_to_tenths[counter],QUANTITY)
+                print("buyorders"+ str(buyOrders))
+                print("Quantitys"+str(buyOrderQuantity))
                 counter = counter + 1
 
             
@@ -104,11 +112,11 @@ def autoBuyBNB():
         sleep(randint(1,5))
         try:
             balance = client.get_asset_balance(asset='BNB')['free']
-            if Decimal(balance) <= 0.1:
+            if Decimal(balance) <= 0.05:
                 print("Not enough BNB in wallet, bot will market buy 0.1 BNB")
                 order = client.order_market_buy(
                 symbol='BNBUSDT',
-                quantity=0.05)
+                quantity=0.1)
         except Exception as e:
             print(e)
 
@@ -127,16 +135,17 @@ def job():
 
         try:
             if len(buyOrders) != 0:
+                idnumber = str(max(buyOrders,key=buyOrders.get))
                 order = client.get_order(
             symbol=SYMBOL,
-            origClientOrderId =str(max(buyOrders,key=buyOrders.get)))
+            origClientOrderId = idnumber)
                 if(order['status'] == 'FILLED'):
                     print(dt_string +' Order filled, calculating sell price...')
                     sellPrice = getSellPriceHighestBuyOrder()
                     try:
                         neworder = client.order_limit_sell(
                         symbol=SYMBOL,
-                        quantity=QUANTITY,
+                        quantity=getOrderQuantity(idnumber),
                         price=sellPrice)
                         print(dt_string + " SELL ORDER PLACED AT PRICE " + str(sellPrice) + " BUY ORDER was at " + str(list(buyOrders.values())[0]))
                         buyOrders.pop(max(buyOrders, key=buyOrders.get))
@@ -159,11 +168,11 @@ def job():
                     try:
                         neworder = client.order_limit_buy(
                         symbol=SYMBOL,
-                        quantity=QUANTITY,
+                        quantity=getQuantity(),
                         price=price,
                         newClientOrderId = str(r1)
                         )
-                        saveOrder(str(r1), price)  
+                        saveOrder(str(r1), price,QUANTITY)  
                         print("Saved order to dict")                 
                     except Exception as e: print(e) 
         else: 
@@ -186,16 +195,15 @@ def job():
                         symbol=SYMBOL,
                         origClientOrderId=orderToPop)
                         buyOrders.pop(orderToPop)
-                        print("Adding buy order bug1")
+                        buyOrderQuantity.pop(orderToPop)
                     #adding buy order
                         r1 = random.randint(0, 1000000)
                         neworder = client.order_limit_buy(
                         symbol=SYMBOL,
-                        quantity=QUANTITY,
+                        quantity=getQuantity(),
                         price=currentSetPrice,
                         newClientOrderId = str(r1))
-                        saveOrder(str(r1),currentSetPrice)
-                        print("Adding buy order bug2")
+                        saveOrder(str(r1),currentSetPrice,QUANTITY)
                     except Exception as e:
                         print(e)
             except Exception as e:
