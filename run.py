@@ -164,7 +164,7 @@ def job():
         print("Checking if bot can create new buy orders...")
         print("Len buyorders = "+str(len(buyOrders)) +" GRIDS = "+str(GRIDS))
         if enoughBalance == True:
-            if len(buyOrders) < GRIDS & len(buyOrders) != 0:
+            if len(buyOrders) < GRIDS and len(buyOrders) != 0:
                     r1 = random.randint(0, 1000000)
                     price = round(Decimal(min(buyOrders.values()))-stepsize,2)
                     print("Can create new buy order(s)"+ "price= "+ str(price)+ "orderid=" + str(r1))
