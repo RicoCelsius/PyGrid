@@ -55,7 +55,7 @@ def balanceChecker():
     try:
             currentprice = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
             balance = client.get_asset_balance(asset='USDT')['free']
-            buyorder = Decimal(QUANTITY)*currentprice
+            buyorder = Decimal(getQuantity())*currentprice
             print("buyorder in dollars: " + str(buyorder))
             print(str(balance))
             global enoughBalance
@@ -85,12 +85,13 @@ def startup():
             while(counter < GRIDS):
                 print(str(round_to_tenths[counter]))
                 r1 = random.randint(0, 1000000)
+                variableQuantity = getQuantity()
                 neworder = client.order_limit_buy(
                 symbol=SYMBOL,
-                quantity=getQuantity(),
+                quantity=variableQuantity,
                 price=round_to_tenths[counter],
                 newClientOrderId = str(r1))
-                saveOrder(str(r1),round_to_tenths[counter],QUANTITY)
+                saveOrder(str(r1),round_to_tenths[counter],variableQuantity)
                 print("buyorders"+ str(buyOrders))
                 print("Quantitys"+str(buyOrderQuantity))
                 counter = counter + 1
@@ -141,6 +142,8 @@ def job():
             origClientOrderId = idnumber)
                 if(order['status'] == 'FILLED'):
                     print(dt_string +' Order filled, calculating sell price...')
+                    print("ID number" + idnumber)
+                    print(str(getOrderQuantity(idnumber)))
                     sellPrice = getSellPriceHighestBuyOrder()
                     try:
                         neworder = client.order_limit_sell(
@@ -165,14 +168,15 @@ def job():
                     r1 = random.randint(0, 1000000)
                     price = round(Decimal(min(buyOrders.values()))-stepsize,2)
                     print("Can create new buy order(s)"+ "price= "+ str(price)+ "orderid=" + str(r1))
+                    variableQuantity = getQuantity()
                     try:
                         neworder = client.order_limit_buy(
                         symbol=SYMBOL,
-                        quantity=getQuantity(),
+                        quantity=variableQuantity,
                         price=price,
                         newClientOrderId = str(r1)
                         )
-                        saveOrder(str(r1), price,QUANTITY)  
+                        saveOrder(str(r1), price,variableQuantity)  
                         print("Saved order to dict")                 
                     except Exception as e: print(e) 
         else: 
@@ -200,10 +204,10 @@ def job():
                         r1 = random.randint(0, 1000000)
                         neworder = client.order_limit_buy(
                         symbol=SYMBOL,
-                        quantity=getQuantity(),
+                        quantity=variableQuantity,
                         price=currentSetPrice,
                         newClientOrderId = str(r1))
-                        saveOrder(str(r1),currentSetPrice,QUANTITY)
+                        saveOrder(str(r1),currentSetPrice,variableQuantity)
                     except Exception as e:
                         print(e)
             except Exception as e:
