@@ -23,6 +23,7 @@ step = 1
 isAPIAvailable = False
 stepprice = [currentprice-stepsize]
 
+
 enoughBalance = False
 
 buyOrders = {}
@@ -53,7 +54,8 @@ def getSellPriceHighestBuyOrder():
         print(sellPrice)
         return sellPrice
 
-
+def getRandomNumber():
+    return str(random.randint(0, 1000000))
 
 
 
@@ -90,14 +92,14 @@ def startup():
             autoBuyBNB()
             while(counter < GRIDS):
                 print(str(round_to_tenths[counter]))
-                r1 = random.randint(0, 1000000)
+                r1 = getRandomNumber()
                 variableQuantity = getQuantity()
                 neworder = client.order_limit_buy(
                 symbol=SYMBOL,
                 quantity=variableQuantity,
                 price=round_to_tenths[counter],
-                newClientOrderId = str(r1))
-                saveOrder(str(r1),round_to_tenths[counter],variableQuantity)
+                newClientOrderId = r1)
+                saveOrder(r1,round_to_tenths[counter],variableQuantity)
                 print("buyorders"+ str(buyOrders))
                 print("Quantitys"+str(buyOrderQuantity))
                 counter = counter + 1
@@ -152,10 +154,12 @@ def job():
                     print(str(getOrderQuantity(idnumber)))
                     sellPrice = getSellPriceHighestBuyOrder()
                     try:
+                        r1 = getRandomNumber()
                         neworder = client.order_limit_sell(
                         symbol=SYMBOL,
                         quantity=getOrderQuantity(idnumber),
-                        price=sellPrice)
+                        price=sellPrice,
+                        newClientOrderId = r1)
                         print(dt_string + " SELL ORDER PLACED AT PRICE " + str(sellPrice) + " BUY ORDER was at " + str(list(buyOrders.values())[0]))
                         buyOrders.pop(max(buyOrders, key=buyOrders.get))
                     except Exception as e: 
@@ -171,18 +175,18 @@ def job():
         print("Len buyorders = "+str(len(buyOrders)) +" GRIDS = "+str(GRIDS))
         if enoughBalance == True:
             if len(buyOrders) < GRIDS and len(buyOrders) != 0:
-                    r1 = random.randint(0, 1000000)
+                    r1 = getRandomNumber()
                     price = truncate(Decimal(min(buyOrders.values()))-stepsize)
-                    print("Can create new buy order(s)"+ "price= "+ str(price)+ "orderid=" + str(r1))
+                    print("Can create new buy order(s)"+ "price= "+ str(price)+ "orderid=" + r1)
                     variableQuantity = getQuantity()
                     try:
                         neworder = client.order_limit_buy(
                         symbol=SYMBOL,
                         quantity=variableQuantity,
                         price=price,
-                        newClientOrderId = str(r1)
+                        newClientOrderId = r1
                         )
-                        saveOrder(str(r1), price,variableQuantity)  
+                        saveOrder(r1, price,variableQuantity)  
                         print("Saved order to dict")                 
                     except Exception as e: print(e) 
         else: 
@@ -207,13 +211,13 @@ def job():
                         buyOrders.pop(orderToPop)
                         buyOrderQuantity.pop(orderToPop)
                     #adding buy order
-                        r1 = random.randint(0, 1000000)
+                        r1 = getRandomNumber()
                         neworder = client.order_limit_buy(
                         symbol=SYMBOL,
                         quantity=variableQuantity,
                         price=currentSetPrice,
-                        newClientOrderId = str(r1))
-                        saveOrder(str(r1),currentSetPrice,variableQuantity)
+                        newClientOrderId = r1)
+                        saveOrder(r1,currentSetPrice,variableQuantity)
                     except Exception as e:
                         print(e)
             except Exception as e:
