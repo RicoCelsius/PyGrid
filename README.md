@@ -31,6 +31,7 @@ Upcoming features:
 - Slow mode -> this means no extra buy orders will be created when price moves up and fills sell orders.
 - Complete refactoring of code
 - Decreasing amount of API calls since we get rate limited very easily.
+- CCXT implementation
 
 
 Thanks!
