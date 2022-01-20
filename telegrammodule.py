@@ -1,6 +1,6 @@
 from telegram import Update, ForceReply, message
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-from config import TG_TOKEN,TG_ENABLED,TG_CHAT_ID
+from config import TG_TOKEN,TG_ENABLED,TG_CHAT_ID,GRIDS
 import threading
 import time
 import binancedata
@@ -22,6 +22,9 @@ def start(update: Update, context: CallbackContext) -> None:
         reply_markup=ForceReply(selective=True),
     )
 
+def sendmessage(tekst) -> None:
+    updater = Updater(token=TG_TOKEN, use_context=True)
+    updater.bot.send_message(chat_id=TG_CHAT_ID,text=tekst)
 
 
 
@@ -33,11 +36,8 @@ def main() -> None:
         dispatcher.add_handler(CommandHandler("start", start))
         dispatcher.add_handler(CommandHandler("balance",balance))
         updater.start_polling()
-
-        
+        updater.bot.send_message(chat_id=TG_CHAT_ID,text=f'Bot started succesfully! Creating {GRIDS} buy orders!')
         #updater.idle() #commented out for threading
-
-
 
 
 

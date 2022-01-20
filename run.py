@@ -10,7 +10,7 @@ import time
 import random
 from decimal import *
 from datetime import datetime
-from telegrammodule import main
+from telegrammodule import main,sendmessage
 from binancedata import getQuantity,getDecimalAmounts
 import threading
 import math
@@ -50,14 +50,11 @@ def createOrder(type,quantity,price):
     if type == "buy":
         neworder = exchange.createOrder(SYMBOL,"limit","buy",quantity,price,{})
         response = neworder['info']['orderId']
-        print(response)
         saveOrder(response,price,quantity)
+        sendmessage(f"Created BUY order at {price}, quantity is {quantity}")
     if type == "sell":
-        neworder = client.order_limit_sell(
-                symbol=SYMBOL,
-                quantity=quantity,
-                price=price,
-                )
+        neworder = exchange.createOrder(SYMBOL,"limit","sell",quantity,price,{})
+        sendmessage(f"Buy order filled, creating sell order at {price}, quantity is {quantity}")
         buyOrders.pop(max(buyOrders, key=buyOrders.get))
 
 #
@@ -161,8 +158,8 @@ def job():
             if len(buyOrders) != 0:
                 idnumber = str(max(buyOrders,key=buyOrders.get))
                 order = client.get_order(
-            symbol=SYMBOL,
-            orderId = idnumber)
+                symbol=SYMBOL,
+                orderId = idnumber)
                 if(order['status'] == 'FILLED'):
                     print(dt_string +' Order filled, calculating sell price...')
                     try:
@@ -177,7 +174,6 @@ def job():
 
         
         print("Checking if bot can create new buy orders...")
-        print("Len buyorders = "+str(len(buyOrders)) +" GRIDS = "+str(GRIDS))
         if enoughBalance == True:
             if len(buyOrders) < GRIDS and len(buyOrders) != 0:
                     print("Can create new buy order(s)")
@@ -215,7 +211,7 @@ def job():
 
 def startjob():
     schedule.every(2).seconds.do(job)
-    if AUTO_BUY_BNB: schedule.every(10).seconds.do(autoBuyBNB)
+    if AUTO_BUY_BNB: schedule.every(100).seconds.do(autoBuyBNB)
 
 
 
