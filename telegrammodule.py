@@ -1,6 +1,6 @@
 from telegram import Update, ForceReply, message
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-from config import TG_TOKEN,TG_ENABLED
+from config import TG_TOKEN,TG_ENABLED,TG_CHAT_ID,GRIDS
 import threading
 import time
 import binancedata
@@ -22,24 +22,22 @@ def start(update: Update, context: CallbackContext) -> None:
         reply_markup=ForceReply(selective=True),
     )
 
-def startup(update: Update, context: CallbackContext):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
-    
+def sendmessage(tekst) -> None:
+    updater = Updater(token=TG_TOKEN, use_context=True)
+    updater.bot.send_message(chat_id=TG_CHAT_ID,text=tekst)
+
+
 
 def main() -> None:
     """Start the bot."""
     if TG_ENABLED == True:
-        updater = Updater(TG_TOKEN)
+        updater = Updater(token=TG_TOKEN, use_context=True)
         dispatcher = updater.dispatcher
         dispatcher.add_handler(CommandHandler("start", start))
         dispatcher.add_handler(CommandHandler("balance",balance))
         updater.start_polling()
-    
-
-    
-    #updater.idle() commented out for threading
-
-
+        updater.bot.send_message(chat_id=TG_CHAT_ID,text=f'Bot started succesfully! Creating {GRIDS} buy orders!')
+        #updater.idle() #commented out for threading
 
 
 
