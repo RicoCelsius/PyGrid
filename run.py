@@ -169,7 +169,7 @@ def job():
                         origQty = Decimal(order['origQty'])
                         if PAY_FEE_BNB == False:
                             fee = Decimal((TRADING_FEE/100))*origQty
-                        else: fee = 0
+                        else: fee = 2
                         quantityy = origQty - fee
                         if dust < quantityy:
                             createOrder("sell",(quantityy+dust),getSellPriceHighestBuyOrder())
@@ -180,7 +180,7 @@ def job():
                         print("Error occured at codeblock creating sell order (1)")
                         print(e)
         except Exception as e: 
-            print("Error occured at codeblock creating sell order (2)")
+            print("Error  occured at codeblock creating sell order (2)")
             print(e)
 
 
