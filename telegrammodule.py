@@ -36,7 +36,7 @@ def main() -> None:
         dispatcher.add_handler(CommandHandler("start", start))
         dispatcher.add_handler(CommandHandler("balance",balance))
         updater.start_polling()
-        updater.bot.send_message(chat_id=TG_CHAT_ID,text=f'Bot started succesfully! Creating {GRIDS} buy orders!')
+        updater.bot.send_message(chat_id=TG_CHAT_ID,text=f'Bot started succesfully! Bot created {GRIDS} buy orders!')
         #updater.idle() #commented out for threading
 
 

@@ -34,6 +34,7 @@ stepsize = Decimal(Decimal(GRIDPERC)/Decimal(100)*currentprice)
 step = 1
 isAPIAvailable = False
 stepprice = [currentprice-stepsize]
+dust = 0
 
 
 enoughBalance = False
@@ -67,7 +68,7 @@ def saveOrder(orderid,price,quantity=0):
 #get order quantity, only for sell orders
 def getOrderQuantity(orderid):
     if buyOrderQuantity:
-     return buyOrderQuantity[orderid]
+        return (buyOrderQuantity[orderid])
 
 
 def getSellPriceHighestBuyOrder():
@@ -142,7 +143,9 @@ def autoBuyBNB():
         except Exception as e:
             print(e)
 
-        
+def setDust():
+    global dust
+    dust = Decimal(truncate(client.get_asset_balance(asset='LUNA')['free']))
     
 startup()
 
@@ -163,7 +166,17 @@ def job():
                 if(order['status'] == 'FILLED'):
                     print(dt_string +' Order filled, calculating sell price...')
                     try:
-                        createOrder("sell",getOrderQuantity(idnumber),getSellPriceHighestBuyOrder())
+                        origQty = Decimal(order['origQty'])
+                        if PAY_FEE_BNB == False:
+                            fee = Decimal((TRADING_FEE/100))*origQty
+                        else: fee = 0
+                        
+                        quantityy = origQty - fee
+                        if dust < quantityy:
+                            createOrder("sell",(quantityy+dust),getSellPriceHighestBuyOrder())
+                        else:
+                            createOrder("sell",(quantityy),getSellPriceHighestBuyOrder())
+                        setDust()
                     except Exception as e: 
                         print("Error occured at codeblock creating sell order (1)")
                         print(e)
