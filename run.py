@@ -170,7 +170,6 @@ def job():
                         if PAY_FEE_BNB == False:
                             fee = Decimal((TRADING_FEE/100))*origQty
                         else: fee = 0
-                        
                         quantityy = origQty - fee
                         if dust < quantityy:
                             createOrder("sell",(quantityy+dust),getSellPriceHighestBuyOrder())
