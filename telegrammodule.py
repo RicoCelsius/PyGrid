@@ -6,6 +6,7 @@ import time
 import binancedata
 
 
+
 def balance(update: Update, context: CallbackContext) -> None:
     """Send a message when the command /balance is issued."""
     user = update.effective_user

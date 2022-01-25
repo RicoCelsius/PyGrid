@@ -1,8 +1,6 @@
 import builtins
 from urllib import request
-from binance.client import Client
 from config import *
-from binance.enums import *
 import schedule
 from time import *
 from random import *
@@ -11,7 +9,7 @@ import random
 from decimal import *
 from datetime import datetime
 from telegrammodule import main,sendmessage
-from binancedata import getQuantity,getDecimalAmounts
+from binancedata import getBalance, getQuantity,getDecimalAmounts
 import threading
 import math
 import ccxt
@@ -26,39 +24,57 @@ exchange = exchange_class({
     'enableRateLimit': True,
 })
 
+# fetch the BTC/USDT ticker for use in converting assets to price in USDT
+ticker = exchange.fetch_ticker(SYMBOL)
+
+# calculate the ticker price of BTC in terms of USDT by taking the midpoint of the best bid and ask
+priceUSDT = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
+print("LUNA Price = " + str(priceUSDT))
+
+
+def getCurrentPrice():
+    priceUSDT = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
+    return priceUSDT
+
 
 print('Welcome to PyGRID v0.2')
-client = Client(API_KEY, API_KEY_SECRET)
-currentprice = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
+
+currentprice = priceUSDT
 stepsize = Decimal(Decimal(GRIDPERC)/Decimal(100)*currentprice)
 step = 1
 isAPIAvailable = False
 stepprice = [currentprice-stepsize]
 dust = 0
+yesterdayBalance = Decimal(getBalance())
 
 
-enoughBalance = False
+enoughBalance = True
 
 buyOrders = {}
 buyOrderQuantity = {}
+
+
+
 
 def truncate(number) -> Decimal:
     stepper = Decimal(10.0) ** Decimal(getDecimalAmounts(SYMBOL))
     return Decimal(math.trunc(Decimal(stepper) * Decimal(number)) / Decimal(stepper))
 
-def createOrder(type,quantity,price): 
-   
+def createOrder(type,quantity,price):
+    currentprice = getCurrentPrice()
     if type == "buy":
         neworder = exchange.createOrder(SYMBOL,"limit","buy",quantity,price,{})
         response = neworder['info']['orderId']
         saveOrder(response,price,quantity)
-        sendmessage(f"Created BUY order at {price}, quantity is {quantity}")
     if type == "sell":
         neworder = exchange.createOrder(SYMBOL,"limit","sell",quantity,price,{})
-        sendmessage(f"Buy order filled, creating sell order at {price}, quantity is {quantity}")
         buyOrders.pop(max(buyOrders, key=buyOrders.get))
+    sendmessage(f"Created {'BUY' if type=='buy' else 'SELL'} order at {price} \n Quantity is {quantity}\n Current balance is {getBalance()}\n Current price is {currentprice}")
 
 #
+
+def testOrder():
+    print("Test order \n ")
 
 def saveOrder(orderid,price,quantity=0):
     buyOrders[orderid] = price
@@ -85,11 +101,12 @@ def getSellPriceHighestBuyOrder():
 
 def balanceChecker():
     try:
-            currentprice = Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])
-            balance = client.get_asset_balance(asset='USDT')['free']
+            currentprice = getCurrentPrice()
+            balance = getBalance()
             buyorder = Decimal(getQuantity())*currentprice
-            print("buyorder in dollars: " + str(buyorder))
+            print("Buyorder in dollars: " + str(buyorder))
             print(str(balance))
+            print(currentprice)
             global enoughBalance
             if Decimal(balance) < buyorder:
                 enoughBalance = False
@@ -109,11 +126,11 @@ round_to_tenths = [truncate(num) for num in stepprice]
 
 
 def startup():
-    balanceChecker()
+    #balanceChecker()
     if enoughBalance == True:
             counter = 0
             print('Creating buy orders...')
-            autoBuyBNB()
+            #autoBuyBNB()
             while(counter < GRIDS):
                 createOrder("buy",getQuantity(),round_to_tenths[counter])
                 counter += 1
@@ -122,30 +139,33 @@ def startup():
             
 def connectivityCheck():
     global isAPIAvailable
-    print("Checking connectivity to binance API...")
+    print("Checking connectivity to the API...")
     try:
-        client.ping()
-        isAPIAvailable = True
-    except:
-        print("Binance API not available")
+        status = exchange.fetchStatus(params = {})
+        if status['status'] == 'ok':
+            isAPIAvailable = True
+        else: isAPIAvailable = False
+    except Exception as e:
+        print("Error occured with pinging the API server")
+        print(e)
         isAPIAvailable = False
         
-def autoBuyBNB():
-    if(AUTO_BUY_BNB == True):
-        sleep(randint(1,5))
-        try:
-            balance = client.get_asset_balance(asset='BNB')['free']
-            if Decimal(balance) <= 0.05:
-                print("Not enough BNB in wallet, bot will market buy 0.1 BNB")
-                order = client.order_market_buy(
-                symbol='BNBUSDT',
-                quantity=0.1)
-        except Exception as e:
-            print(e)
+# def autoBuyBNB():
+#     if(AUTO_BUY_BNB == True):
+#         sleep(randint(1,5))
+#         try:
+#             balance = client.get_asset_balance(asset='BNB')['free']
+#             if Decimal(balance) <= 0.05:
+#                 print("Not enough BNB in wallet, bot will market buy 0.1 BNB")
+#                 order = client.order_market_buy(
+#                 symbol='BNBUSDT',
+#                 quantity=0.1)
+#         except Exception as e:
+#             print(e)
 
-def setDust():
-    global dust
-    dust = Decimal(truncate(client.get_asset_balance(asset='LUNA')['free']))
+# def setDust():
+#     global dust
+#     dust = Decimal(truncate(client.get_asset_balance(asset='LUNA')['free']))
     
 startup()
 
@@ -154,28 +174,25 @@ def job():
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     connectivityCheck()
     if isAPIAvailable == True:
-        print(dt_string + " Binance API is available")
         balanceChecker()
         print(dt_string + " Checking if orders have been filled...")         
         try:
             if len(buyOrders) != 0:
                 idnumber = str(max(buyOrders,key=buyOrders.get))
-                order = client.get_order(
-                symbol=SYMBOL,
-                orderId = idnumber)
-                if(order['status'] == 'FILLED'):
+                order = exchange.fetchOrder(idnumber, symbol = SYMBOL, params = {})
+                if(order['status'] == 'closed'):
                     print(dt_string +' Order filled, calculating sell price...')
                     try:
-                        origQty = Decimal(order['origQty'])
+                        origQty = Decimal(order['filled'])
                         if PAY_FEE_BNB == False:
                             fee = Decimal((TRADING_FEE/100))*origQty
-                        else: fee = 2
+                        else: fee = 0
                         quantityy = origQty - fee
                         if dust < quantityy:
                             createOrder("sell",(quantityy+dust),getSellPriceHighestBuyOrder())
                         else:
                             createOrder("sell",(quantityy),getSellPriceHighestBuyOrder())
-                        setDust()
+                        #setDust()
                     except Exception as e: 
                         print("Error occured at codeblock creating sell order (1)")
                         print(e)
@@ -200,7 +217,7 @@ def job():
         print('Checking if orders are still inside range')
         if 1 > 0:
             try:
-                currentSetPrice = truncate(Decimal(client.get_symbol_ticker(symbol=SYMBOL)["price"])-stepsize)
+                currentSetPrice = truncate(getCurrentPrice()-stepsize)
                 maxBuyOrder = Decimal(max(buyOrders.values()))
                 threshold = (maxBuyOrder)*(1+(Decimal(2*GRIDPERC)/100))
                 print("Max buy order = "+ str(maxBuyOrder) + " Threshold = "+ str(threshold) + "Curr price =" + str(currentprice))
@@ -209,9 +226,7 @@ def job():
                         print(dt_string + 'Cancelling lowest order and bringing it on top')
                         orderToPop = min(buyOrders, key=buyOrders.get)
                         print(str(orderToPop))
-                        client.cancel_order(
-                        symbol=SYMBOL,
-                        orderId=orderToPop)
+                        exchange.cancel_order (str(orderToPop))
                         buyOrders.pop(orderToPop)
                         buyOrderQuantity.pop(orderToPop)
                     #adding buy order
@@ -221,9 +236,16 @@ def job():
             except Exception as e:
                 print(e)
 
+def dailyUpdate():
+    currentBalance = Decimal(getBalance())
+    global yesterdayBalance
+    sendmessage(f"Your daily update \n Current balance: {currentBalance} \n Balance yesterday: {str(yesterdayBalance)} \n Difference: {str(currentBalance-yesterdayBalance)}")
+    yesterdayBalance = Decimal(currentBalance)
+
 def startjob():
     schedule.every(2).seconds.do(job)
-    if AUTO_BUY_BNB: schedule.every(100).seconds.do(autoBuyBNB)
+    schedule.every(1).day.do(dailyUpdate())
+    #if AUTO_BUY_BNB: schedule.every(100).seconds.do(autoBuyBNB)
 
 
 
