@@ -33,7 +33,8 @@ print("LUNA Price = " + str(priceUSDT))
 
 
 def getCurrentPrice():
-    priceUSDT = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
+    tickerr = exchange.fetch_ticker(SYMBOL)
+    priceUSDT = Decimal((float(tickerr['ask']) + float(tickerr['bid'])) / 2)
     return priceUSDT
 
 
@@ -64,7 +65,7 @@ def createOrder(type,quantity,price):
     currentprice = getCurrentPrice()
     if type == "buy":
         neworder = exchange.createOrder(SYMBOL,"limit","buy",quantity,price,{})
-        response = neworder['info']['orderId']
+        response = neworder['id']
         saveOrder(response,price,quantity)
     if type == "sell":
         neworder = exchange.createOrder(SYMBOL,"limit","sell",quantity,price,{})
@@ -220,7 +221,7 @@ def job():
                 currentSetPrice = truncate(getCurrentPrice()-stepsize)
                 maxBuyOrder = Decimal(max(buyOrders.values()))
                 threshold = (maxBuyOrder)*(1+(Decimal(2*GRIDPERC)/100))
-                print("Max buy order = "+ str(maxBuyOrder) + " Threshold = "+ str(threshold) + "Curr price =" + str(currentprice))
+                print("Max buy order = "+ str(maxBuyOrder) + " Threshold = "+ str(threshold) + "Currset price =" + str(currentSetPrice))
                 if Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100)):
                     try:
                         print(dt_string + 'Cancelling lowest order and bringing it on top')

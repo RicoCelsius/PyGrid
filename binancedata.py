@@ -38,7 +38,7 @@ def getBalance():
 def getDecimalAmounts(symbol):
     #response = requests.get("https://api.binance.com/api/v3/exchangeInfo?symbol="+symbol)
     #minQty = float(response.json()["symbols"][0]["filters"][2]["minQty"])
-    amountDecimals = 2
+    amountDecimals = 3
     return amountDecimals
     
 
