@@ -70,7 +70,7 @@ def createOrder(type,quantity,price):
     if type == "sell":
         neworder = exchange.createOrder(SYMBOL,"limit","sell",quantity,price,{})
         buyOrders.pop(max(buyOrders, key=buyOrders.get))
-    sendmessage(f"Created {'BUY' if type=='buy' else 'SELL'} order at {price} \nQuantity is {quantity}\nCurrent balance is {getBalance()}\nCurrent price is {currentprice}")
+    sendmessage(f"Created {'BUY' if type=='buy' else 'SELL'} order at {price} \n Quantity is {quantity}\n Current balance is {getBalance()}\n Current price is {currentprice}")
 
 #
 

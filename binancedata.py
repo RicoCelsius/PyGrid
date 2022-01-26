@@ -52,5 +52,5 @@ def getQuantity():
         print("Quote quantity = " + str(quoteQuantity))
         print("Quantitydollars =" + str(quantityDollars))
         print("config quantity =" + str(QUANTITY))
-        return round(quoteQuantity,3)
+        return round(quoteQuantity,2)
     else: return QUANTITY
