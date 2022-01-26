@@ -184,15 +184,11 @@ def job():
                 if(order['status'] == 'closed'):
                     print(dt_string +' Order filled, calculating sell price...')
                     try:
-                        origQty = Decimal(order['filled'])
-                        if PAY_FEE_BNB == False:
-                            fee = Decimal((TRADING_FEE/100))*origQty
-                        else: fee = 0
-                        quantityy = origQty - fee
-                        if dust < quantityy:
-                            createOrder("sell",(quantityy+dust),getSellPriceHighestBuyOrder())
-                        else:
-                            createOrder("sell",(quantityy),getSellPriceHighestBuyOrder())
+                        sendmessage("String from exchange " + str(order['filled']))
+                        origQty = round(Decimal(order['filled']),2)
+                        sendmessage("Orig qty = "+ str(origQty))
+                        sendmessage("qty test "+ str(round(Decimal(0.06),2)))
+                        createOrder("sell",(origQty),getSellPriceHighestBuyOrder())
                         #setDust()
                     except Exception as e: 
                         print("Error occured at codeblock creating sell order (1)")
