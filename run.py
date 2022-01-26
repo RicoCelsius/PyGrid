@@ -70,7 +70,7 @@ def createOrder(type,quantity,price):
     if type == "sell":
         neworder = exchange.createOrder(SYMBOL,"limit","sell",quantity,price,{})
         buyOrders.pop(max(buyOrders, key=buyOrders.get))
-    sendmessage(f"Created {'BUY' if type=='buy' else 'SELL'} order at {price} \n Quantity is {quantity}\n Current balance is {getBalance()}\n Current price is {currentprice}")
+    sendmessage(f"Created {'BUY' if type=='buy' else 'SELL'} order at {price} \nQuantity is {quantity}\nCurrent balance is {getBalance()}\nCurrent price is {currentprice}")
 
 #
 
@@ -228,10 +228,17 @@ def job():
                         orderToPop = min(buyOrders, key=buyOrders.get)
                         print(str(orderToPop))
                         exchange.cancel_order (str(orderToPop))
+                        try:
+                            order = exchange.fetchOrder(orderToPop, symbol = SYMBOL, params = {})
+                            filledQuantity = order['filled']
+                            if filledQuantity > 0:
+                                if exchange.has['createMarketOrder']:
+                                    exchange.createOrder(SYMBOL,'market','sell',filledQuantity,{})
+                        except Exception as e: sendmessage(str(e))
                         buyOrders.pop(orderToPop)
                         buyOrderQuantity.pop(orderToPop)
                     #adding buy order
-                        createOrder("buy",getQuantity(),currentSetPrice) #not tested
+                        createOrder("buy",getQuantity(),currentSetPrice)
                     except Exception as e:
                         print(e)
             except Exception as e:

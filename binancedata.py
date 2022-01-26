@@ -1,7 +1,5 @@
 import builtins
 from urllib import request
-from binance.client import Client
-from binance.enums import *
 from config import API_KEY,API_KEY_SECRET,COMPOUND_WALLET_PERC,SYMBOL,COMPOUND,QUANTITY,EXCHANGE
 from decimal import *
 import json
@@ -54,5 +52,5 @@ def getQuantity():
         print("Quote quantity = " + str(quoteQuantity))
         print("Quantitydollars =" + str(quantityDollars))
         print("config quantity =" + str(QUANTITY))
-        return round(quoteQuantity,2)
+        return round(quoteQuantity,3)
     else: return QUANTITY
