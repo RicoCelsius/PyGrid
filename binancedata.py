@@ -52,5 +52,8 @@ def getQuantity():
         print("Quote quantity = " + str(quoteQuantity))
         print("Quantitydollars =" + str(quantityDollars))
         print("config quantity =" + str(QUANTITY))
-        return round(quoteQuantity,2)
+        marketStructure = exchange.markets[SYMBOL]
+        print(str(marketStructure['precision']['amount']))
+        lenstr = len(str(marketStructure['precision']['amount']).split(".")[1])
+        return round(quoteQuantity,lenstr)
     else: return QUANTITY
