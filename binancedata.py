@@ -29,7 +29,7 @@ def getCurrentPrice():
     return priceUSDT
 
 def getBalance():
-    balance = exchange.fetchBalance()['USDT']['free']
+    balance = exchange.fetchBalance()['USD']['free']
     print(str(balance))
     return str(balance)
 
@@ -43,7 +43,7 @@ def getDecimalAmounts(symbol):
 
 def getQuantity():
     if COMPOUND == True:
-        balance = exchange.fetchBalance()['USDT']['free']
+        balance = exchange.fetchBalance()['USD']['free']
         quotePrice = getCurrentPrice()
         print(balance)
         print(quotePrice)

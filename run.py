@@ -64,11 +64,11 @@ def truncate(number) -> Decimal:
 def createOrder(type,quantity,price):
     currentprice = getCurrentPrice()
     if type == "buy":
-        neworder = exchange.createOrder(SYMBOL,"limit","buy",quantity,price,{})
+        neworder = exchange.createOrder(SYMBOL,"limit","buy",quantity,price)
         response = neworder['id']
         saveOrder(response,price,quantity)
     if type == "sell":
-        neworder = exchange.createOrder(SYMBOL,"limit","sell",quantity,price,{})
+        neworder = exchange.createOrder(SYMBOL,"limit","sell",quantity,price)
         buyOrders.pop(max(buyOrders, key=buyOrders.get))
     sendmessage(f"Created {'BUY' if type=='buy' else 'SELL'} order at {price} \n Quantity is {quantity}\n Current balance is {getBalance()}\n Current price is {currentprice}")
 
@@ -184,8 +184,17 @@ def job():
                 if(order['status'] == 'closed'):
                     print(dt_string +' Order filled, calculating sell price...')
                     try:
-                        origQty = Decimal(order['filled'])
-                        createOrder("sell",(origQty),getSellPriceHighestBuyOrder())
+                        marketStructure = exchange.markets[SYMBOL]
+                        print(str(marketStructure['precision']['amount']))
+                        lenstr = len(str(marketStructure['precision']['amount']).split(".")[1])
+
+
+
+
+                        createOrder("sell",round(Decimal(order['filled']),lenstr),getSellPriceHighestBuyOrder())
+                        sendmessage("Decimal(order['filled'] = " + str(Decimal(order['filled'])))
+                        sendmessage("Good one is:"+ str(round(Decimal(order['filled']),lenstr)))
+                    
                         #setDust()
                     except Exception as e: 
                         print("Error occured at codeblock creating sell order (1)")
