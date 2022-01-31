@@ -29,7 +29,7 @@ ticker = exchange.fetch_ticker(SYMBOL)
 
 # calculate the ticker price of BTC in terms of USDT by taking the midpoint of the best bid and ask
 priceUSDT = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
-print("LUNA Price = " + str(priceUSDT))
+
 
 
 def getCurrentPrice():
@@ -105,16 +105,16 @@ def balanceChecker():
             currentprice = getCurrentPrice()
             balance = getBalance()
             buyorder = Decimal(getQuantity())*currentprice
-            print("Buyorder in dollars: " + str(buyorder))
-            print(str(balance))
-            print(currentprice)
             global enoughBalance
             if Decimal(balance) < buyorder:
                 enoughBalance = False
                 print("Insufficient funds to create buy orders")
+                sendmessage("Insufficient funds to create buy orders")
             else:
                 enoughBalance = True
-    except Exception as e: print(e)
+    except Exception as e: 
+        print(e) 
+        sendmessage(e)
 
 
 
@@ -148,6 +148,7 @@ def connectivityCheck():
         else: isAPIAvailable = False
     except Exception as e:
         print("Error occured with pinging the API server")
+        sendmessage(e)
         print(e)
         isAPIAvailable = False
         
@@ -198,9 +199,11 @@ def job():
                         #setDust()
                     except Exception as e: 
                         print("Error occured at codeblock creating sell order (1)")
+                        sendmessage(e)
                         print(e)
         except Exception as e: 
             print("Error  occured at codeblock creating sell order (2)")
+            sendmessage(e)
             print(e)
 
 
@@ -212,7 +215,9 @@ def job():
                     variableQuantity = getQuantity()
                     try:
                         createOrder("buy",getQuantity(),truncate(Decimal(min(buyOrders.values()))-stepsize))                
-                    except Exception as e: print(e) 
+                    except Exception as e: 
+                        print(e) 
+                        sendmessage(e)
         else: 
             print("Not sufficient funds to create buy orders")
 
@@ -227,6 +232,7 @@ def job():
                 if Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100)):
                     try:
                         print(dt_string + 'Cancelling lowest order and bringing it on top')
+                        sendmessage("Cancelling lowest order and bringing it on top")
                         orderToPop = min(buyOrders, key=buyOrders.get)
                         print(str(orderToPop))
                         exchange.cancel_order (str(orderToPop))
@@ -236,14 +242,22 @@ def job():
                             if filledQuantity > 0:
                                 if exchange.has['createMarketOrder']:
                                     exchange.createOrder(SYMBOL,'market','sell',filledQuantity,{})
-                        except Exception as e: sendmessage(str(e))
+                        except Exception as e:
+                                sendmessage(str(e))
+                                buyOrders.pop(orderToPop)
+                                buyOrderQuantity.pop(orderToPop)
                         buyOrders.pop(orderToPop)
                         buyOrderQuantity.pop(orderToPop)
                     #adding buy order
                         createOrder("buy",getQuantity(),currentSetPrice)
+                    except ccxt.ExchangeError as e:
+                        sendmessage("(1)Error happened at " + e)
+                        buyOrders.pop(orderToPop)
+                        buyOrderQuantity.pop(orderToPop)
                     except Exception as e:
-                        print(e)
+                        sendmessage("(2)Error happened at "+ e)
             except Exception as e:
+                sendmessage(e)
                 print(e)
 
 def dailyUpdate():
@@ -270,7 +284,7 @@ except Exception as e:
     print("Something went wrong with threading")
     print(e)
 
-while 1:
+while True:
     schedule.run_pending()
     time.sleep(1)
 
