@@ -53,6 +53,7 @@ enoughBalance = True
 
 buyOrders = {}
 buyOrderQuantity = {}
+sellOrders = []
 
 
 
@@ -69,6 +70,8 @@ def createOrder(type,quantity,price):
         saveOrder(response,price,quantity)
     if type == "sell":
         neworder = exchange.createOrder(SYMBOL,"limit","sell",quantity,price)
+        response = neworder['id']
+        sellOrders.insert(0,response)
         buyOrders.pop(max(buyOrders, key=buyOrders.get))
     sendmessage(f"Created {'BUY' if type=='buy' else 'SELL'} order at {price} \n Quantity is {quantity}\n Current balance is {getBalance()}\n Current price is {currentprice}")
 
@@ -96,6 +99,15 @@ def getSellPriceHighestBuyOrder():
         print(sellPrice)
         return sellPrice
 
+
+def checkSellOrder():
+    if len(sellOrders) > 0:
+        try:
+            order = exchange.fetchOrder(sellOrders[0], symbol = SYMBOL, params = {})
+            if order['status'] == 'closed':
+                sendmessage('Hooray, sell order filled for in total of ' + str(order['cost']) )
+                sellOrders.pop(0)
+        except Exception as e: sendmessage(e)
 
 
 
@@ -193,8 +205,6 @@ def job():
 
 
                         createOrder("sell",round(Decimal(order['filled']),lenstr),getSellPriceHighestBuyOrder())
-                        sendmessage("Decimal(order['filled'] = " + str(Decimal(order['filled'])))
-                        sendmessage("Good one is:"+ str(round(Decimal(order['filled']),lenstr)))
                     
                         #setDust()
                     except Exception as e: 
@@ -229,10 +239,10 @@ def job():
                 maxBuyOrder = Decimal(max(buyOrders.values()))
                 threshold = (maxBuyOrder)*(1+(Decimal(2*GRIDPERC)/100))
                 print("Max buy order = "+ str(maxBuyOrder) + " Threshold = "+ str(threshold) + "Currset price =" + str(currentSetPrice))
-                if Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100)):
+                if (Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100))) and (order['status'] == 'open'):
                     try:
                         print(dt_string + 'Cancelling lowest order and bringing it on top')
-                        sendmessage("Cancelling lowest order and bringing it on top")
+                        sendmessage('Cancelling lowest order and bringing it on top')
                         orderToPop = min(buyOrders, key=buyOrders.get)
                         print(str(orderToPop))
                         exchange.cancel_order (str(orderToPop))
@@ -268,7 +278,8 @@ def dailyUpdate():
 
 def startjob():
     schedule.every(2).seconds.do(job)
-    schedule.every(1).day.do(dailyUpdate())
+    schedule.every(1).day.do(dailyUpdate)
+    schedule.every(1).seconds.do(checkSellOrder)
     #if AUTO_BUY_BNB: schedule.every(100).seconds.do(autoBuyBNB)
 
 
@@ -284,7 +295,7 @@ except Exception as e:
     print("Something went wrong with threading")
     print(e)
 
-while True:
+while 1:
     schedule.run_pending()
     time.sleep(1)
 
