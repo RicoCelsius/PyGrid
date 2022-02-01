@@ -107,7 +107,7 @@ def checkSellOrder():
             if order['status'] == 'closed':
                 sendmessage('Hooray, sell order filled for in total of ' + str(order['cost']) )
                 sellOrders.pop(0)
-        except Exception as e: sendmessage(e)
+        except Exception as e: print(e)
 
 
 
@@ -126,7 +126,7 @@ def balanceChecker():
                 enoughBalance = True
     except Exception as e: 
         print(e) 
-        sendmessage(e)
+        print(e)
 
 
 
@@ -160,7 +160,7 @@ def connectivityCheck():
         else: isAPIAvailable = False
     except Exception as e:
         print("Error occured with pinging the API server")
-        sendmessage(e)
+        print(e)
         print(e)
         isAPIAvailable = False
         
@@ -209,11 +209,11 @@ def job():
                         #setDust()
                     except Exception as e: 
                         print("Error occured at codeblock creating sell order (1)")
-                        sendmessage(e)
+                        ##print(e)
                         print(e)
         except Exception as e: 
             print("Error  occured at codeblock creating sell order (2)")
-            sendmessage(e)
+            #print(e)
             print(e)
 
 
@@ -227,7 +227,7 @@ def job():
                         createOrder("buy",getQuantity(),truncate(Decimal(min(buyOrders.values()))-stepsize))                
                     except Exception as e: 
                         print(e) 
-                        sendmessage(e)
+                        #print(e)
         else: 
             print("Not sufficient funds to create buy orders")
 
@@ -261,13 +261,13 @@ def job():
                     #adding buy order
                         createOrder("buy",getQuantity(),currentSetPrice)
                     except ccxt.ExchangeError as e:
-                        sendmessage("(1)Error happened at " + e)
+                        #sendmessage("(1)Error happened at " + e)
                         buyOrders.pop(orderToPop)
                         buyOrderQuantity.pop(orderToPop)
                     except Exception as e:
-                        sendmessage("(2)Error happened at "+ e)
+                        pass
+                        #sendmessage("(2)Error happened at "+ e)
             except Exception as e:
-                sendmessage(e)
                 print(e)
 
 def dailyUpdate():
@@ -279,7 +279,7 @@ def dailyUpdate():
 def startjob():
     schedule.every(2).seconds.do(job)
     schedule.every(1).day.do(dailyUpdate)
-    schedule.every(1).seconds.do(checkSellOrder)
+    #schedule.every(1).seconds.do(checkSellOrder)
     #if AUTO_BUY_BNB: schedule.every(100).seconds.do(autoBuyBNB)
 
 
