@@ -8,7 +8,7 @@ import time
 import random
 from decimal import *
 from datetime import datetime
-from telegrammodule import main,sendmessage
+from telegrammodule import main,sendMessage
 from binancedata import getBalance, getQuantity,getDecimalAmounts
 import threading
 import math
@@ -73,30 +73,20 @@ def createOrder(type,quantity,price):
         response = neworder['id']
         sellOrders.insert(0,response)
         buyOrders.pop(max(buyOrders, key=buyOrders.get))
-    sendmessage(f"Created {'BUY' if type=='buy' else 'SELL'} order at {price} \n Quantity is {quantity}\n Current balance is {getBalance()}\n Current price is {currentprice}")
+    sendMessage(f"Created {'BUY' if type=='buy' else 'SELL'} order at {price} \nQuantity is {quantity}\nCurrent balance is {getBalance()}\nCurrent price is {currentprice}")
 
-#
 
-def testOrder():
-    print("Test order \n ")
 
 def saveOrder(orderid,price,quantity=0):
     buyOrders[orderid] = price
     buyOrderQuantity[orderid] = quantity
 
 
-#get order quantity, only for sell orders
-def getOrderQuantity(orderid):
-    if buyOrderQuantity:
-        return (buyOrderQuantity[orderid])
-
 
 def getSellPriceHighestBuyOrder():
     if buyOrders:
         highestValue = max(buyOrders.values())
-        print(highestValue)
         sellPrice = Decimal(truncate(highestValue * Decimal(((GRIDPERC/100)+1))))
-        print(sellPrice)
         return sellPrice
 
 
@@ -105,7 +95,7 @@ def checkSellOrder():
         try:
             order = exchange.fetchOrder(sellOrders[0], symbol = SYMBOL, params = {})
             if order['status'] == 'closed':
-                sendmessage(f"Hooray, sell order filled for in total of {order['cost']}")
+                sendMessage(f"Hooray, sell order filled for in total of {order['cost']}")
                 sellOrders.pop(0)
         except Exception as e: print(e)
 
@@ -121,7 +111,7 @@ def balanceChecker():
             if Decimal(balance) < buyorder:
                 enoughBalance = False
                 print(f"Insufficient funds to create buy orders")
-                sendmessage(f"Insufficient funds to create buy orders")
+                sendMessage(f"Insufficient funds to create buy orders")
             else:
                 enoughBalance = True
     except Exception as e: 
@@ -231,7 +221,7 @@ def job():
                 if (Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100))) and (order['status'] == 'open'):
                     try:
                         print(f"{dt_string} Cancelling lowest order and bringing it on top")
-                        sendmessage('Cancelling lowest order and bringing it on top')
+                        sendMessage('Cancelling lowest order and bringing it on top')
                         orderToPop = min(buyOrders, key=buyOrders.get)
                         print(str(orderToPop))
                         exchange.cancel_order (str(orderToPop))
@@ -242,7 +232,7 @@ def job():
                                 if exchange.has['createMarketOrder']:
                                     exchange.createOrder(SYMBOL,'market','sell',filledQuantity,{})
                         except Exception as e:
-                                sendmessage(str(e))
+                                sendMessage(str(e))
                                 buyOrders.pop(orderToPop)
                                 buyOrderQuantity.pop(orderToPop)
                         buyOrders.pop(orderToPop)
@@ -250,19 +240,19 @@ def job():
                     #adding buy order
                         createOrder("buy",getQuantity(),currentSetPrice)
                     except ccxt.ExchangeError as e:
-                        #sendmessage("(1)Error happened at " + e)
+                        #sendMessage("(1)Error happened at " + e)
                         buyOrders.pop(orderToPop)
                         buyOrderQuantity.pop(orderToPop)
                     except Exception as e:
                         pass
-                        #sendmessage("(2)Error happened at "+ e)
+                        #sendMessage("(2)Error happened at "+ e)
             except Exception as e:
                 print(e)
 
 def dailyUpdate():
     currentBalance = Decimal(getBalance())
     global yesterdayBalance
-    sendmessage(f"Your daily update \n Current balance: {currentBalance} \n Balance yesterday: {str(yesterdayBalance)} \n Difference: {str(currentBalance-yesterdayBalance)}")
+    sendMessage(f"Your daily update \n Current balance: {currentBalance} \n Balance yesterday: {str(yesterdayBalance)} \n Difference: {str(currentBalance-yesterdayBalance)}")
     yesterdayBalance = Decimal(currentBalance)
 
 def startjob():

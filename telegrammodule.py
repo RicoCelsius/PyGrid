@@ -23,7 +23,7 @@ def start(update: Update, context: CallbackContext) -> None:
         reply_markup=ForceReply(selective=True),
     )
 
-def sendmessage(tekst) -> None:
+def sendMessage(tekst) -> None:
     if TG_ENABLED == True:
         updater = Updater(token=TG_TOKEN, use_context=True)
         updater.bot.send_message(chat_id=TG_CHAT_ID,text=tekst)
