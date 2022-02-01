@@ -105,7 +105,7 @@ def checkSellOrder():
         try:
             order = exchange.fetchOrder(sellOrders[0], symbol = SYMBOL, params = {})
             if order['status'] == 'closed':
-                sendmessage('Hooray, sell order filled for in total of ' + str(order['cost']) )
+                sendmessage(f"Hooray, sell order filled for in total of {order['cost']}")
                 sellOrders.pop(0)
         except Exception as e: print(e)
 
@@ -120,8 +120,8 @@ def balanceChecker():
             global enoughBalance
             if Decimal(balance) < buyorder:
                 enoughBalance = False
-                print("Insufficient funds to create buy orders")
-                sendmessage("Insufficient funds to create buy orders")
+                print(f"Insufficient funds to create buy orders")
+                sendmessage(f"Insufficient funds to create buy orders")
             else:
                 enoughBalance = True
     except Exception as e: 
@@ -142,7 +142,7 @@ def startup():
     #balanceChecker()
     if enoughBalance == True:
             counter = 0
-            print('Creating buy orders...')
+            print(f'Creating buy orders...')
             #autoBuyBNB()
             while(counter < GRIDS):
                 createOrder("buy",getQuantity(),round_to_tenths[counter])
@@ -152,16 +152,14 @@ def startup():
             
 def connectivityCheck():
     global isAPIAvailable
-    print("Checking connectivity to the API...")
+    print(f"Checking connectivity to the API...")
     try:
         status = exchange.fetchStatus(params = {})
         if status['status'] == 'ok':
             isAPIAvailable = True
         else: isAPIAvailable = False
     except Exception as e:
-        print("Error occured with pinging the API server")
-        print(e)
-        print(e)
+        print(f"Error occured with pinging the API server")
         isAPIAvailable = False
         
 # def autoBuyBNB():
@@ -189,31 +187,23 @@ def job():
     connectivityCheck()
     if isAPIAvailable == True:
         balanceChecker()
-        print(dt_string + " Checking if orders have been filled...")         
+        print(f"{dt_string} Checking if orders have been filled...")         
         try:
             if len(buyOrders) != 0:
                 idnumber = str(max(buyOrders,key=buyOrders.get))
                 order = exchange.fetchOrder(idnumber, symbol = SYMBOL, params = {})
                 if(order['status'] == 'closed'):
-                    print(dt_string +' Order filled, calculating sell price...')
+                    print(f"{dt_string} Order filled, calculating sell price...")
                     try:
                         marketStructure = exchange.markets[SYMBOL]
-                        print(str(marketStructure['precision']['amount']))
                         lenstr = len(str(marketStructure['precision']['amount']).split(".")[1])
-
-
-
-
                         createOrder("sell",round(Decimal(order['filled']),lenstr),getSellPriceHighestBuyOrder())
-                    
                         #setDust()
                     except Exception as e: 
                         print("Error occured at codeblock creating sell order (1)")
-                        ##print(e)
                         print(e)
         except Exception as e: 
             print("Error  occured at codeblock creating sell order (2)")
-            #print(e)
             print(e)
 
 
@@ -221,7 +211,7 @@ def job():
         print("Checking if bot can create new buy orders...")
         if enoughBalance == True:
             if len(buyOrders) < GRIDS and len(buyOrders) != 0:
-                    print("Can create new buy order(s)")
+                    print(f"Can create new buy order(s)")
                     variableQuantity = getQuantity()
                     try:
                         createOrder("buy",getQuantity(),truncate(Decimal(min(buyOrders.values()))-stepsize))                
@@ -229,19 +219,18 @@ def job():
                         print(e) 
                         #print(e)
         else: 
-            print("Not sufficient funds to create buy orders")
+            print(f"Not sufficient funds to create buy orders")
 
         
-        print('Checking if orders are still inside range')
+        print(f'Checking if orders are still inside range')
         if 1 > 0:
             try:
                 currentSetPrice = truncate(getCurrentPrice()-stepsize)
                 maxBuyOrder = Decimal(max(buyOrders.values()))
                 threshold = (maxBuyOrder)*(1+(Decimal(2*GRIDPERC)/100))
-                print("Max buy order = "+ str(maxBuyOrder) + " Threshold = "+ str(threshold) + "Currset price =" + str(currentSetPrice))
                 if (Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100))) and (order['status'] == 'open'):
                     try:
-                        print(dt_string + 'Cancelling lowest order and bringing it on top')
+                        print(f"{dt_string} Cancelling lowest order and bringing it on top")
                         sendmessage('Cancelling lowest order and bringing it on top')
                         orderToPop = min(buyOrders, key=buyOrders.get)
                         print(str(orderToPop))
@@ -292,7 +281,7 @@ try:
     t1 = threading.Thread(target=main())
     t1.start()
 except Exception as e:
-    print("Something went wrong with threading")
+    print(f"Something went wrong with threading")
     print(e)
 
 while 1:
