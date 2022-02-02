@@ -1,5 +1,7 @@
 from decimal import *
 EXCHANGE = 'binance'
+TRADING_FEE = 0.1
+PAY_FEE_BNB = False
 API_KEY = ''
 API_KEY_SECRET = '' #Please turn on IP whitelist for extra security.
 SYMBOL = 'LUNAUSDT'
