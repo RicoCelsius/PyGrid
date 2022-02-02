@@ -47,6 +47,7 @@ isAPIAvailable = False
 stepprice = [currentprice-stepsize]
 dust = 0
 yesterdayBalance = Decimal(getBalance())
+totalProfitSinceStartup = 0
 
 
 enoughBalance = True
@@ -81,13 +82,20 @@ def saveOrder(orderid,price,quantity=0):
     buyOrders[orderid] = price
     buyOrderQuantity[orderid] = quantity
 
+def calculateProfit(cost):
+    sellTotal = cost
+    buyTotal = Decimal(cost) / Decimal((1+(GRIDPERC/100)))
 
+    totalprofit = sellTotal - buyTotal
+    global totalProfitSinceStartup
+    totalProfitSinceStartup += round(totalprofit,2)
+    return round(totalprofit,2)
 
 def getSellPriceHighestBuyOrder():
     if buyOrders:
         highestValue = max(buyOrders.values())
         sellPrice = Decimal(truncate(highestValue * Decimal(((GRIDPERC/100)+1))))
-        return sellPrice
+        return round(sellPrice,2)
 
 
 def checkSellOrder():
@@ -95,7 +103,7 @@ def checkSellOrder():
         try:
             order = exchange.fetchOrder(sellOrders[0], symbol = SYMBOL, params = {})
             if order['status'] == 'closed':
-                sendMessage(f"Hooray, sell order filled for in total of {order['cost']}")
+                sendMessage(f"Sell order filled, your profit is {calculateProfit(Decimal(order['cost']))}\nYour total profit since the bot start-up is {totalProfitSinceStartup}")
                 sellOrders.pop(0)
         except Exception as e: print(e)
 
@@ -177,6 +185,7 @@ def job():
     connectivityCheck()
     if isAPIAvailable == True:
         balanceChecker()
+        checkSellOrder()
         print(f"{dt_string} Checking if orders have been filled...")         
         try:
             if len(buyOrders) != 0:
