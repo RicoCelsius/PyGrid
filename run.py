@@ -13,8 +13,7 @@ from binancedata import getBalance, getQuantity,getDecimalAmounts
 import threading
 import math
 import ccxt
-import json
-import requests
+
 
 exchange_id = EXCHANGE
 exchange_class = getattr(ccxt, exchange_id)
@@ -29,7 +28,7 @@ ticker = exchange.fetch_ticker(SYMBOL)
 
 # calculate the ticker price of BTC in terms of USDT by taking the midpoint of the best bid and ask
 priceUSDT = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
-
+startTime = time.time()
 
 
 def getCurrentPrice():
@@ -103,7 +102,11 @@ def checkSellOrder():
         try:
             order = exchange.fetchOrder(sellOrders[0], symbol = SYMBOL, params = {})
             if order['status'] == 'closed':
-                sendMessage(f"Sell order filled, your profit is {calculateProfit(Decimal(order['cost']))}\nYour total profit since the bot start-up is {totalProfitSinceStartup}")
+                endTime = time.time()
+                timeElapsed = endTime - startTime
+                timeElapsedInHours = timeElapsed / 3600
+                profitPerHour = Decimal(totalProfitSinceStartup) / Decimal(timeElapsedInHours)
+                sendMessage(f"Sell order filled\nYour profit in this trade: {calculateProfit(Decimal(order['cost']))}\nYour total profit since bot start-up: {totalProfitSinceStartup}\nRuntime: {round(timeElapsed,2)} seconds\nProfit per hour: {round(profitPerHour,2)}")
                 sellOrders.pop(0)
         except Exception as e: print(e)
 
