@@ -1,8 +1,7 @@
-# PyGrid Binance grid bot
+# PyGrid grid bot
 
 Use at your own risk! I'm not a professional coder and I'm doing this project just for fun.
 
-Only for Binance!
 
 Installation steps:
 1. Clone this repo
@@ -22,16 +21,17 @@ Bug reports will be appreciated.
 Features:
 - Trades assets in a grid-like manner. The grids are dynamic; this means there's no hassle with choosing a range!
 - Automatically buys BNB to pay for trading fees if your BNB balance is < 0.1
+- Telegram messages
+- Compounding
+- CCXT implementation
 
 
 
 Upcoming features:
-- Telegram messages
-- Compounding
 - Slow mode -> this means no extra buy orders will be created when price moves up and fills sell orders.
 - Complete refactoring of code
 - Decreasing amount of API calls since we get rate limited very easily.
-- CCXT implementation
+
 
 
 Thanks!
