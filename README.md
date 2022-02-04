@@ -13,7 +13,10 @@ Installation steps:
 TG Commands:
 /balance
 
-Tip: Use PM2 to manage the process.
+Tips: 
+- Use PM2 to manage the process.
+- Use FTX exchange, you can get 0% maker fee when you are staking 25 FTT.
+
 
 
 Bug reports will be appreciated.
