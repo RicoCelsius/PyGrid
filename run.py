@@ -48,7 +48,7 @@ dust = 0
 yesterdayBalance = Decimal(getBalance())
 totalProfitSinceStartup = 0
 
-
+state = True
 enoughBalance = True
 
 buyOrders = {}
@@ -186,7 +186,7 @@ def job():
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     connectivityCheck()
-    if isAPIAvailable == True:
+    if isAPIAvailable == True and state == True:
         balanceChecker()
         checkSellOrder()
         print(f"{dt_string} Checking if orders have been filled...")         
@@ -214,7 +214,6 @@ def job():
         if enoughBalance == True:
             if len(buyOrders) < GRIDS and len(buyOrders) != 0:
                     print(f"Can create new buy order(s)")
-                    variableQuantity = getQuantity()
                     try:
                         createOrder("buy",getQuantity(),truncate(Decimal(min(buyOrders.values()))-stepsize))                
                     except Exception as e: 
