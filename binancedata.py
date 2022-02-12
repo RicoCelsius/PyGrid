@@ -16,6 +16,7 @@ exchange = exchange_class({
     'enableRateLimit': True,
 })
 
+lastQuantity = []
 # fetch the BTC/USDT ticker for use in converting assets to price in USDT
 ticker = exchange.fetch_ticker(SYMBOL)
 
@@ -43,17 +44,20 @@ def getDecimalAmounts(symbol):
 
 def getQuantity():
     if COMPOUND == True:
-        balance = exchange.fetchBalance()['USD']['free']
-        quotePrice = getCurrentPrice()
-        print(balance)
-        print(quotePrice)
-        quantityDollars = Decimal(balance)*Decimal((COMPOUND_WALLET_PERC/100))
-        quoteQuantity = quantityDollars/quotePrice
-        print("Quote quantity = " + str(quoteQuantity))
-        print("Quantitydollars =" + str(quantityDollars))
-        print("config quantity =" + str(QUANTITY))
-        marketStructure = exchange.markets[SYMBOL]
-        print(str(marketStructure['precision']['amount']))
-        lenstr = len(str(marketStructure['precision']['amount']).split(".")[1])
-        return round(quoteQuantity,lenstr)
+        try:
+            balance = exchange.fetchBalance()['USD']['free']
+            quotePrice = getCurrentPrice()
+            print(balance)
+            print(quotePrice)
+            quantityDollars = Decimal(balance)*Decimal((COMPOUND_WALLET_PERC/100))
+            quoteQuantity = quantityDollars/quotePrice
+            print("Quote quantity = " + str(quoteQuantity))
+            print("Quantitydollars =" + str(quantityDollars))
+            print("config quantity =" + str(QUANTITY))
+            marketStructure = exchange.markets[SYMBOL]
+            print(str(marketStructure['precision']['amount']))
+            lenstr = len(str(marketStructure['precision']['amount']).split(".")[1])
+            lastQuantity.insert(0,round(quoteQuantity,lenstr))
+            return round(quoteQuantity,lenstr)
+        except: return lastQuantity[0]
     else: return QUANTITY
