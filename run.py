@@ -34,7 +34,7 @@ startTime = time.time()
 def getCurrentPrice():
     tickerr = exchange.fetch_ticker(SYMBOL)
     priceUSDT = Decimal((float(tickerr['ask']) + float(tickerr['bid'])) / 2)
-    return priceUSDT
+    return round(priceUSDT,2)
 
 
 print('Welcome to PyGRID v0.2')
