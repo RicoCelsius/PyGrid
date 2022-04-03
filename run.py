@@ -14,13 +14,16 @@ import threading
 import math
 import ccxt
 
-
+subaccount = SUB_ACCOUNT
 exchange_id = EXCHANGE
 exchange_class = getattr(ccxt, exchange_id)
 exchange = exchange_class({
     'apiKey': API_KEY,
     'secret': API_KEY_SECRET,
     'enableRateLimit': True,
+            'headers': {
+        'FTX-SUBACCOUNT': f'{subaccount}'
+    }
 })
 
 # fetch the BTC/USDT ticker for use in converting assets to price in USDT
@@ -34,7 +37,7 @@ startTime = time.time()
 def getCurrentPrice():
     tickerr = exchange.fetch_ticker(SYMBOL)
     priceUSDT = Decimal((float(tickerr['ask']) + float(tickerr['bid'])) / 2)
-    return priceUSDT
+    return round(priceUSDT,2)
 
 
 print('Welcome to PyGRID v0.2')
@@ -63,7 +66,7 @@ def truncate(number) -> Decimal:
     return Decimal(math.trunc(Decimal(stepper) * Decimal(number)) / Decimal(stepper))
 
 def createOrder(type,quantity,price):
-    currentprice = getCurrentPrice()
+    currentprice = round(getCurrentPrice(),2)
     if type == "buy":
         neworder = exchange.createOrder(SYMBOL,"limit","buy",quantity,price)
         response = neworder['id']
@@ -79,7 +82,7 @@ def createOrder(type,quantity,price):
 
 def saveOrder(orderid,price,quantity=0):
     buyOrders[orderid] = price
-    buyOrderQuantity[orderid] = quantity
+    #buyOrderQuantity[orderid] = quantity
 
 def calculateProfit(cost):
     sellTotal = cost
@@ -183,6 +186,11 @@ def connectivityCheck():
 startup()
 
 def job():
+    try: printLengths()
+    except: pass
+
+
+
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     connectivityCheck()
@@ -228,7 +236,7 @@ def job():
             try:
                 currentSetPrice = truncate(getCurrentPrice()-stepsize)
                 maxBuyOrder = Decimal(max(buyOrders.values()))
-                threshold = (maxBuyOrder)*(1+(Decimal(2*GRIDPERC)/100))
+                threshold = (maxBuyOrder)*(1+(Decimal(GRIDPERC)/100))
                 if (Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100))) and (order['status'] == 'open'):
                     try:
                         print(f"{dt_string} Cancelling lowest order and bringing it on top")
@@ -245,15 +253,15 @@ def job():
                         except Exception as e:
                                 sendMessage(str(e))
                                 buyOrders.pop(orderToPop)
-                                buyOrderQuantity.pop(orderToPop)
+                                #buyOrderQuantity.pop(orderToPop)
                         buyOrders.pop(orderToPop)
-                        buyOrderQuantity.pop(orderToPop)
+                        #buyOrderQuantity.pop(orderToPop)
                     #adding buy order
                         createOrder("buy",getQuantity(),currentSetPrice)
                     except ccxt.ExchangeError as e:
                         #sendMessage("(1)Error happened at " + e)
                         buyOrders.pop(orderToPop)
-                        buyOrderQuantity.pop(orderToPop)
+                        #buyOrderQuantity.pop(orderToPop)
                     except Exception as e:
                         pass
                         #sendMessage("(2)Error happened at "+ e)
@@ -267,12 +275,13 @@ def dailyUpdate():
     yesterdayBalance = Decimal(currentBalance)
 
 def startjob():
-    schedule.every(2).seconds.do(job)
+    schedule.every(1).seconds.do(job)
     schedule.every(1).day.do(dailyUpdate)
-    #schedule.every(1).seconds.do(checkSellOrder)
-    #if AUTO_BUY_BNB: schedule.every(100).seconds.do(autoBuyBNB)
 
 
+def printLengths():
+    print(f"Length buyOrders is {len(buyOrders)} Length buyOrderQuantity is {len(buyOrderQuantity)}, sellorders is {len(sellOrders)} stepprice is {len(stepprice)}  ")
+    
 
 
 

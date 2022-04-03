@@ -47,17 +47,15 @@ def getQuantity():
         try:
             balance = exchange.fetchBalance()['USD']['free']
             quotePrice = getCurrentPrice()
-            print(balance)
-            print(quotePrice)
             quantityDollars = Decimal(balance)*Decimal((COMPOUND_WALLET_PERC/100))
             quoteQuantity = quantityDollars/quotePrice
-            print("Quote quantity = " + str(quoteQuantity))
-            print("Quantitydollars =" + str(quantityDollars))
-            print("config quantity =" + str(QUANTITY))
             marketStructure = exchange.markets[SYMBOL]
-            print(str(marketStructure['precision']['amount']))
             lenstr = len(str(marketStructure['precision']['amount']).split(".")[1])
             lastQuantity.insert(0,round(quoteQuantity,lenstr))
+            print(f"Length lastQuantity = {len(lastQuantity)}")
+
+            if len(lastQuantity) > 3:
+                lastQuantity.pop()
             return round(quoteQuantity,lenstr)
         except: return lastQuantity[0]
     else: return QUANTITY

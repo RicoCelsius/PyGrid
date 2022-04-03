@@ -14,3 +14,4 @@ TG_TOKEN = ''
 TG_CHAT_ID = ''
 TG_ENABLED = False #current command(s): /balance
 AUTO_BUY_BNB = True #automatically buys BNB if there's not enough left in your wallet
+SUB_ACCOUNT = ""
