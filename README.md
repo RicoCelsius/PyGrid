@@ -17,6 +17,9 @@ Tips:
 - Use PM2 to manage the process.
 - Use FTX exchange, you can get 0% maker fee when you are staking 25 FTT.
 
+Tested on:
+- FTX with 0% fee
+- Binance, pay fee with BNB
 
 
 Bug reports will be appreciated.
