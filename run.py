@@ -21,10 +21,10 @@ exchange = exchange_class({
     'apiKey': API_KEY,
     'secret': API_KEY_SECRET,
     'enableRateLimit': True,
-            'headers': {
-        'FTX-SUBACCOUNT': f'{subaccount}'
+            #'headers': {
+        #'FTX-SUBACCOUNT': f'{subaccount}'
     }
-})
+)
 
 # fetch the BTC/USDT ticker for use in converting assets to price in USDT
 ticker = exchange.fetch_ticker(SYMBOL)
@@ -253,18 +253,18 @@ def job():
                         except Exception as e:
                                 sendMessage(str(e))
                                 buyOrders.pop(orderToPop)
-                                #buyOrderQuantity.pop(orderToPop)
+                        
                         buyOrders.pop(orderToPop)
-                        #buyOrderQuantity.pop(orderToPop)
+                
                     #adding buy order
-                        createOrder("buy",getQuantity(),currentSetPrice)
+                        createOrder("buy",getQuantity(),Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100)))
                     except ccxt.ExchangeError as e:
-                        #sendMessage("(1)Error happened at " + e)
+                        
                         buyOrders.pop(orderToPop)
-                        #buyOrderQuantity.pop(orderToPop)
+                        
                     except Exception as e:
                         pass
-                        #sendMessage("(2)Error happened at "+ e)
+                    
             except Exception as e:
                 print(e)
 
@@ -296,7 +296,7 @@ except Exception as e:
 
 while 1:
     schedule.run_pending()
-    time.sleep(1)
+    time.sleep(0.1)
 
 
 
