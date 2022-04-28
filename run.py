@@ -21,8 +21,8 @@ exchange = exchange_class({
     'apiKey': API_KEY,
     'secret': API_KEY_SECRET,
     'enableRateLimit': True,
-            'headers': {
-        'FTX-SUBACCOUNT': f'{subaccount}'
+           # 'headers': {
+      #  'FTX-SUBACCOUNT': f'{subaccount}'
     }
 })
 
