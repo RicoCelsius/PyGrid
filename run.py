@@ -14,6 +14,8 @@ import threading
 import math
 import ccxt
 
+
+
 subaccount = SUB_ACCOUNT
 exchange_id = EXCHANGE
 exchange_class = getattr(ccxt, exchange_id)
@@ -21,10 +23,8 @@ exchange = exchange_class({
     'apiKey': API_KEY,
     'secret': API_KEY_SECRET,
     'enableRateLimit': True,
-           # 'headers': {
-      #  'FTX-SUBACCOUNT': f'{subaccount}'
     }
-})
+)
 
 # fetch the BTC/USDT ticker for use in converting assets to price in USDT
 ticker = exchange.fetch_ticker(SYMBOL)
@@ -48,6 +48,7 @@ step = 1
 isAPIAvailable = False
 stepprice = [currentprice-stepsize]
 dust = 0
+startBalance = Decimal(getBalance())
 yesterdayBalance = Decimal(getBalance())
 totalProfitSinceStartup = 0
 
@@ -90,7 +91,7 @@ def calculateProfit(cost):
 
     totalprofit = sellTotal - buyTotal
     global totalProfitSinceStartup
-    totalProfitSinceStartup += round(totalprofit,2)
+    totalProfitSinceStartup += totalprofit
     return round(totalprofit,2)
 
 def getSellPriceHighestBuyOrder():
@@ -109,7 +110,8 @@ def checkSellOrder():
                 timeElapsed = endTime - startTime
                 timeElapsedInHours = timeElapsed / 3600
                 profitPerHour = Decimal(totalProfitSinceStartup) / Decimal(timeElapsedInHours)
-                sendMessage(f"Sell order filled\nYour profit in this trade: {calculateProfit(Decimal(order['cost']))}\nYour total profit since bot start-up: {totalProfitSinceStartup}\nRuntime: {round(timeElapsed,2)} seconds\nProfit per hour: {round(profitPerHour,2)}")
+                apr = round(((profitPerHour*8760/startBalance)*100),2)
+                sendMessage(f"Sell order filled\nYour profit in this trade: {calculateProfit(Decimal(order['cost']))}\nYour total profit since bot start-up: {totalProfitSinceStartup}\nRuntime: {round(timeElapsed,2)} seconds\nProfit per hour: {round(profitPerHour,2)}\nAPR: {apr}")
                 sellOrders.pop(0)
         except Exception as e: print(e)
 
@@ -130,7 +132,7 @@ def balanceChecker():
                 enoughBalance = True
     except Exception as e: 
         print(e) 
-        print(e)
+
 
 
 
@@ -182,13 +184,16 @@ def connectivityCheck():
 # def setDust():
 #     global dust
 #     dust = Decimal(truncate(client.get_asset_balance(asset='LUNA')['free']))
-    
+
+
+
 startup()
+
+
 
 def job():
     try: printLengths()
     except: pass
-
 
 
     now = datetime.now()
@@ -206,7 +211,7 @@ def job():
                     print(f"{dt_string} Order filled, calculating sell price...")
                     try:
                         marketStructure = exchange.markets[SYMBOL]
-                        lenstr = len(str(marketStructure['precision']['amount']).split(".")[1])
+                        lenstr = 3
                         createOrder("sell",round(Decimal(order['filled']),lenstr),getSellPriceHighestBuyOrder())
                         #setDust()
                     except Exception as e: 
@@ -243,7 +248,7 @@ def job():
                         sendMessage('Cancelling lowest order and bringing it on top')
                         orderToPop = min(buyOrders, key=buyOrders.get)
                         print(str(orderToPop))
-                        exchange.cancel_order (str(orderToPop))
+                        exchange.cancel_order (str(orderToPop),symbol=SYMBOL)
                         try:
                             order = exchange.fetchOrder(orderToPop, symbol = SYMBOL, params = {})
                             filledQuantity = order['filled']
@@ -253,18 +258,18 @@ def job():
                         except Exception as e:
                                 sendMessage(str(e))
                                 buyOrders.pop(orderToPop)
-                                #buyOrderQuantity.pop(orderToPop)
+                        
                         buyOrders.pop(orderToPop)
-                        #buyOrderQuantity.pop(orderToPop)
+                
                     #adding buy order
-                        createOrder("buy",getQuantity(),currentSetPrice)
+                        createOrder("buy",getQuantity(),Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100)))
                     except ccxt.ExchangeError as e:
-                        #sendMessage("(1)Error happened at " + e)
+                        
                         buyOrders.pop(orderToPop)
-                        #buyOrderQuantity.pop(orderToPop)
+                        
                     except Exception as e:
                         pass
-                        #sendMessage("(2)Error happened at "+ e)
+                    
             except Exception as e:
                 print(e)
 
@@ -296,7 +301,7 @@ except Exception as e:
 
 while 1:
     schedule.run_pending()
-    time.sleep(1)
+    time.sleep(0.1)
 
 
 

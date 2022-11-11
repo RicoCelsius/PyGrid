@@ -1,6 +1,6 @@
 import builtins
 from urllib import request
-from config import API_KEY,API_KEY_SECRET,COMPOUND_WALLET_PERC,SYMBOL,COMPOUND,QUANTITY,EXCHANGE
+from config import API_KEY,API_KEY_SECRET,COMPOUND_WALLET_PERC,SYMBOL,COMPOUND,DOLLARQUANTITY,EXCHANGE
 from decimal import *
 import json
 import requests
@@ -30,7 +30,7 @@ def getCurrentPrice():
     return priceUSDT
 
 def getBalance():
-    balance = exchange.fetchBalance()['USD']['free']
+    balance = exchange.fetchBalance()['BUSD']['free']
     print(str(balance))
     return str(balance)
 
@@ -43,19 +43,28 @@ def getDecimalAmounts(symbol):
 
 
 def getQuantity():
+    marketStructure = exchange.markets[SYMBOL]
+    # print(marketStructure)
+    # print(marketStructure['precision'])
+    #lenstr = len(str(marketStructure['precision']['amount']))
+    lenstr = 3
     if COMPOUND == True:
         try:
             balance = exchange.fetchBalance()['USD']['free']
             quotePrice = getCurrentPrice()
             quantityDollars = Decimal(balance)*Decimal((COMPOUND_WALLET_PERC/100))
             quoteQuantity = quantityDollars/quotePrice
-            marketStructure = exchange.markets[SYMBOL]
-            lenstr = len(str(marketStructure['precision']['amount']).split(".")[1])
+            
+            
             lastQuantity.insert(0,round(quoteQuantity,lenstr))
             print(f"Length lastQuantity = {len(lastQuantity)}")
 
             if len(lastQuantity) > 3:
                 lastQuantity.pop()
-            return round(quoteQuantity,lenstr)
+            return round(quoteQuantity,lenstr) if quantityDollars > DOLLARQUANTITY else round(Decimal(DOLLARQUANTITY)/getCurrentPrice(),lenstr)
         except: return lastQuantity[0]
-    else: return QUANTITY
+    else:
+        
+        
+        
+         return round(Decimal(DOLLARQUANTITY)/getCurrentPrice(),lenstr)
