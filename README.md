@@ -18,8 +18,7 @@ Tips:
 - Use FTX exchange, you can get 0% maker fee when you are staking 25 FTT.
 
 Tested on:
-- FTX with 0% fee
-- Binance, pay fee with BNB
+- Binance, pay fee with BNB and 0% trading fee
 
 
 Bug reports will be appreciated.
