@@ -23,8 +23,6 @@ exchange = exchange_class({
     'apiKey': api_key,
     'secret': api_key_secret,
     'enableRateLimit': True,
-
-    
     }
 )
 
