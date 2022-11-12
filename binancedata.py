@@ -1,6 +1,6 @@
 import builtins
 from urllib import request
-from config import API_KEY,API_KEY_SECRET,COMPOUND_WALLET_PERC,SYMBOL,COMPOUND,DOLLARQUANTITY,EXCHANGE
+import config
 from decimal import *
 import json
 import requests
@@ -8,17 +8,17 @@ import math
 import ccxt
 
 
-exchange_id = EXCHANGE
-exchange_class = getattr(ccxt, exchange_id)
+
+exchange_class = getattr(ccxt, config.exchange)
 exchange = exchange_class({
-    'apiKey': API_KEY,
-    'secret': API_KEY_SECRET,
+    'apiKey': config.api_key,
+    'secret': config.api_key_secret,
     'enableRateLimit': True,
 })
 
 lastQuantity = []
 # fetch the BTC/USDT ticker for use in converting assets to price in USDT
-ticker = exchange.fetch_ticker(SYMBOL)
+ticker = exchange.fetch_ticker(config.symbol)
 
 # calculate the ticker price of BTC in terms of USDT by taking the midpoint of the best bid and ask
 priceUSDT = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
@@ -43,16 +43,16 @@ def getDecimalAmounts(symbol):
 
 
 def getQuantity():
-    marketStructure = exchange.markets[SYMBOL]
+    marketStructure = exchange.markets[config.symbol]
     # print(marketStructure)
     # print(marketStructure['precision'])
     #lenstr = len(str(marketStructure['precision']['amount']))
     lenstr = 3
-    if COMPOUND == True:
+    if config.compound == True:
         try:
             balance = exchange.fetchBalance()['USD']['free']
             quotePrice = getCurrentPrice()
-            quantityDollars = Decimal(balance)*Decimal((COMPOUND_WALLET_PERC/100))
+            quantityDollars = Decimal(balance)*Decimal((config.compound_wallet_perc/100))
             quoteQuantity = quantityDollars/quotePrice
             
             
@@ -61,10 +61,10 @@ def getQuantity():
 
             if len(lastQuantity) > 3:
                 lastQuantity.pop()
-            return round(quoteQuantity,lenstr) if quantityDollars > DOLLARQUANTITY else round(Decimal(DOLLARQUANTITY)/getCurrentPrice(),lenstr)
+            return round(quoteQuantity,lenstr) if quantityDollars > config.dollarquantity else round(Decimal(config.dollarquantity)/getCurrentPrice(),lenstr)
         except: return lastQuantity[0]
     else:
         
         
         
-         return round(Decimal(DOLLARQUANTITY)/getCurrentPrice(),lenstr)
+         return round(Decimal(config.dollarquantity)/getCurrentPrice(),lenstr)

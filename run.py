@@ -16,12 +16,12 @@ import ccxt
 
 
 
-subaccount = SUB_ACCOUNT
-exchange_id = EXCHANGE
-exchange_class = getattr(ccxt, exchange_id)
+
+
+exchange_class = getattr(ccxt, exchange)
 exchange = exchange_class({
-    'apiKey': API_KEY,
-    'secret': API_KEY_SECRET,
+    'apiKey': api_key,
+    'secret': api_key_secret,
     'enableRateLimit': True,
 
     
@@ -29,7 +29,7 @@ exchange = exchange_class({
 )
 
 # fetch the BTC/USDT ticker for use in converting assets to price in USDT
-ticker = exchange.fetch_ticker(SYMBOL)
+ticker = exchange.fetch_ticker(symbol)
 
 # calculate the ticker price of BTC in terms of USDT by taking the midpoint of the best bid and ask
 priceUSDT = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
@@ -37,7 +37,7 @@ startTime = time.time()
 
 
 def getCurrentPrice():
-    tickerr = exchange.fetch_ticker(SYMBOL)
+    tickerr = exchange.fetch_ticker(symbol)
     priceUSDT = Decimal((float(tickerr['ask']) + float(tickerr['bid'])) / 2)
     return round(priceUSDT,2)
 
@@ -45,7 +45,7 @@ def getCurrentPrice():
 print('Welcome to PyGRID v0.2')
 
 currentprice = priceUSDT
-stepsize = Decimal(Decimal(GRIDPERC)/Decimal(100)*currentprice)
+stepsize = Decimal(Decimal(gridperc)/Decimal(100)*currentprice)
 step = 1
 isAPIAvailable = False
 stepprice = [currentprice-stepsize]
@@ -65,17 +65,17 @@ sellOrders = []
 
 
 def truncate(number) -> Decimal:
-    stepper = Decimal(10.0) ** Decimal(getDecimalAmounts(SYMBOL))
+    stepper = Decimal(10.0) ** Decimal(getDecimalAmounts(symbol))
     return Decimal(math.trunc(Decimal(stepper) * Decimal(number)) / Decimal(stepper))
 
 def createOrder(type,quantity,price):
     currentprice = round(getCurrentPrice(),2)
     if type == "buy":
-        neworder = exchange.createOrder(SYMBOL,"limit","buy",quantity,price)
+        neworder = exchange.createOrder(symbol,"limit","buy",quantity,price)
         response = neworder['id']
         saveOrder(response,price,quantity)
     if type == "sell":
-        neworder = exchange.createOrder(SYMBOL,"limit","sell",quantity,price)
+        neworder = exchange.createOrder(symbol,"limit","sell",quantity,price)
         response = neworder['id']
         sellOrders.insert(0,response)
         buyOrders.pop(max(buyOrders, key=buyOrders.get))
@@ -89,7 +89,7 @@ def saveOrder(orderid,price,quantity=0):
 
 def calculateProfit(cost):
     sellTotal = cost
-    buyTotal = Decimal(cost) / Decimal((1+(GRIDPERC/100)))
+    buyTotal = Decimal(cost) / Decimal((1+(gridperc/100)))
 
     totalprofit = sellTotal - buyTotal
     global totalProfitSinceStartup
@@ -99,14 +99,14 @@ def calculateProfit(cost):
 def getSellPriceHighestBuyOrder():
     if buyOrders:
         highestValue = max(buyOrders.values())
-        sellPrice = Decimal(truncate(highestValue * Decimal(((GRIDPERC/100)+1))))
+        sellPrice = Decimal(truncate(highestValue * Decimal(((gridperc/100)+1))))
         return round(sellPrice,2)
 
 
 def checkSellOrder():
     if len(sellOrders) > 0:
         try:
-            order = exchange.fetchOrder(sellOrders[0], symbol = SYMBOL, params = {})
+            order = exchange.fetchOrder(sellOrders[0], symbol = symbol, params = {})
             if order['status'] == 'closed':
                 endTime = time.time()
                 timeElapsed = endTime - startTime
@@ -138,7 +138,7 @@ def balanceChecker():
 
 
 
-while step < GRIDS:
+while step < grids:
     stepprice.append(stepprice[step-1]-stepsize)
     step += 1
 
@@ -152,7 +152,7 @@ def startup():
             counter = 0
             print(f'Creating buy orders...')
             #autoBuyBNB()
-            while(counter < GRIDS):
+            while(counter < grids):
                 createOrder("buy",getQuantity(),round_to_tenths[counter])
                 counter += 1
 
@@ -208,11 +208,11 @@ def job():
         try:
             if len(buyOrders) != 0:
                 idnumber = str(max(buyOrders,key=buyOrders.get))
-                order = exchange.fetchOrder(idnumber, symbol = SYMBOL, params = {})
+                order = exchange.fetchOrder(idnumber, symbol = symbol, params = {})
                 if(order['status'] == 'closed'):
                     print(f"{dt_string} Order filled, calculating sell price...")
                     try:
-                        marketStructure = exchange.markets[SYMBOL]
+                        marketStructure = exchange.markets[symbol]
                         lenstr = 3
                         createOrder("sell",round(Decimal(order['filled']),lenstr),getSellPriceHighestBuyOrder())
                         #setDust()
@@ -227,7 +227,7 @@ def job():
         
         print("Checking if bot can create new buy orders...")
         if enoughBalance == True:
-            if len(buyOrders) < GRIDS and len(buyOrders) != 0:
+            if len(buyOrders) < grids and len(buyOrders) != 0:
                     print(f"Can create new buy order(s)")
                     try:
                         createOrder("buy",getQuantity(),truncate(Decimal(min(buyOrders.values()))-stepsize))                
@@ -243,20 +243,20 @@ def job():
             try:
                 currentSetPrice = truncate(getCurrentPrice()-stepsize)
                 maxBuyOrder = Decimal(max(buyOrders.values()))
-                threshold = (maxBuyOrder)*(1+(Decimal(GRIDPERC)/100))
-                if (Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100))) and (order['status'] == 'open'):
+                threshold = (maxBuyOrder)*(1+(Decimal(gridperc)/100))
+                if (Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(gridperc)/100))) and (order['status'] == 'open'):
                     try:
                         print(f"{dt_string} Cancelling lowest order and bringing it on top")
                         sendMessage('Cancelling lowest order and bringing it on top')
                         orderToPop = min(buyOrders, key=buyOrders.get)
                         print(str(orderToPop))
-                        exchange.cancel_order (str(orderToPop),symbol=SYMBOL)
+                        exchange.cancel_order (str(orderToPop),symbol=symbol)
                         try:
-                            order = exchange.fetchOrder(orderToPop, symbol = SYMBOL, params = {})
+                            order = exchange.fetchOrder(orderToPop, symbol = symbol, params = {})
                             filledQuantity = order['filled']
                             if filledQuantity > 0:
                                 if exchange.has['createMarketOrder']:
-                                    exchange.createOrder(SYMBOL,'market','sell',filledQuantity,{})
+                                    exchange.createOrder(symbol,'market','sell',filledQuantity,{})
                         except Exception as e:
                                 sendMessage(str(e))
                                 buyOrders.pop(orderToPop)
@@ -264,7 +264,7 @@ def job():
                         buyOrders.pop(orderToPop)
                 
                     #adding buy order
-                        createOrder("buy",getQuantity(),Decimal(max(buyOrders.values()))*(1+(Decimal(GRIDPERC)/100)))
+                        createOrder("buy",getQuantity(),Decimal(max(buyOrders.values()))*(1+(Decimal(gridperc)/100)))
                     except ccxt.ExchangeError as e:
                         
                         buyOrders.pop(orderToPop)
