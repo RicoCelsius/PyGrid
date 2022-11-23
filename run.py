@@ -6,19 +6,131 @@ from time import *
 from random import *
 import time
 import random
-from decimal import *
+
 from datetime import datetime
 from telegrammodule import main,sendMessage
-from binancedata import getBalance, getQuantity,getDecimalAmounts
+# from binancedata import getBalance, getQuantity,getDecimalAmounts
 import threading
+import math
+import ccxt
+import symboldata
+
+import builtins
+from urllib import request
+import config
+from decimal import *
+import json
+import requests
 import math
 import ccxt
 
 
 
 
+exchange_class = getattr(ccxt, config.exchange)
+exchange = exchange_class({
+    'apiKey': config.api_key,
+    'secret': config.api_key_secret,
+    'enableRateLimit': True,
+})
 
-exchange_class = getattr(ccxt, exchange)
+lastQuantity = []
+currentQuantity = None
+mayAdapt = True
+ordersDict = {}
+# fetch the BTC/USDT ticker for use in converting assets to price in USDT
+ticker = exchange.fetch_ticker(config.symbol)
+
+# calculate the ticker price of BTC in terms of USDT by taking the midpoint of the best bid and ask
+priceUSD = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
+print("Price = " + str(priceUSD))
+
+
+
+def getCurrentPrice():
+    priceUSD = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
+    return priceUSD
+
+def getBalance():
+    balance = exchange.fetchBalance()['BUSD']['free']
+    print(str(balance))
+    return str(balance)
+
+def getDecimalAmounts(symbol):
+    #response = requests.get("https://api.binance.com/api/v3/exchangeInfo?symbol="+symbol)
+    #minQty = float(response.json()["symbols"][0]["filters"][2]["minQty"])
+    amountDecimals = 3
+    return amountDecimals
+    
+
+
+def getQuantity():
+    marketStructure = exchange.markets[config.symbol]
+    global apr
+    global mayAdapt
+    global currentQuantity
+    lenstr = symboldata.basePrecision
+    if config.compound:
+        try:
+            balance = exchange.fetchBalance()['USD']['free']
+            quotePrice = getCurrentPrice()
+            quantityDollars = Decimal(balance)*Decimal((config.compound_wallet_perc/100))
+            quoteQuantity = quantityDollars/quotePrice
+            
+            
+            lastQuantity.insert(0,round(quoteQuantity,lenstr))
+            print(f"Length lastQuantity = {len(lastQuantity)}")
+
+            if len(lastQuantity) > 3:
+                lastQuantity.pop()
+            return round(quoteQuantity,lenstr) if quantityDollars > config.dollarquantity else round(Decimal(config.dollarquantity)/getCurrentPrice(),lenstr)
+        except: return lastQuantity[0]
+    elif config.apr_target_mode:
+        #x=5*z/y, target = z, hapr = y
+        x = None
+        if apr == None or apr == 0:
+            return round(Decimal(config.dollarquantity)/getCurrentPrice(),lenstr)
+        if mayAdapt == False: return currentQuantity
+        elif target_apr != float(apr) and mayAdapt:
+            f = 100
+            x = (f * target_apr) / apr
+            inverseFactor = 1/f
+            xKwadraat = x*x
+            fDelenDoorxKwad = f/xKwadraat
+            plus1min1 = -1 if target_apr < apr else 1
+            slope = (float((fDelenDoorxKwad))+float(inverseFactor))*(plus1min1)
+            configQuantity = Decimal(config.dollarquantity)/getCurrentPrice()
+            
+            new_quantity_delta = (Decimal(slope) * configQuantity) if currentQuantity == None else Decimal(slope) * currentQuantity
+            
+            new_quantity = (configQuantity + new_quantity_delta) if currentQuantity == None else currentQuantity + new_quantity_delta
+            
+            #sendMessage(f'x={x},slope={slope},new_quantity={new_quantity},target={target_apr},apr={apr}')
+            currentPrice=getCurrentPrice()
+
+            safetyFactor = Decimal(1.1)
+        
+            mayAdapt = False
+
+            if Decimal(new_quantity)*currentPrice > symboldata.minNotional*safetyFactor:
+                currentQuantity = new_quantity
+                return round(abs(new_quantity),lenstr)
+            else:
+                minimumQuantity = (symboldata.minNotional/currentPrice)*safetyFactor
+                currentQuantity = minimumQuantity
+                return round(minimumQuantity,lenstr)
+            
+
+            
+
+
+        
+    else:
+         return round(Decimal(config.dollarquantity)/getCurrentPrice(),lenstr)
+
+
+
+exchange_class = getattr(ccxt, config.exchange)
 exchange = exchange_class({
     'apiKey': api_key,
     'secret': api_key_secret,
@@ -30,19 +142,19 @@ exchange = exchange_class({
 ticker = exchange.fetch_ticker(symbol)
 
 # calculate the ticker price of BTC in terms of USDT by taking the midpoint of the best bid and ask
-priceUSDT = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
+priceUSD = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
 startTime = time.time()
 
 
 def getCurrentPrice():
-    tickerr = exchange.fetch_ticker(symbol)
-    priceUSDT = Decimal((float(tickerr['ask']) + float(tickerr['bid'])) / 2)
-    return round(priceUSDT,2)
+    ticker = exchange.fetch_ticker(symbol)
+    priceUSD = Decimal((float(ticker['ask']) + float(ticker['bid'])) / 2)
+    return round(priceUSD,symboldata.pricePrecision)
 
 
 print('Welcome to PyGRID v0.2')
 
-currentprice = priceUSDT
+currentprice = priceUSD
 stepsize = Decimal(Decimal(gridperc)/Decimal(100)*currentprice)
 step = 1
 isAPIAvailable = False
@@ -51,13 +163,13 @@ dust = 0
 startBalance = Decimal(getBalance())
 yesterdayBalance = Decimal(getBalance())
 totalProfitSinceStartup = 0
+apr = None
 
 state = True
 enoughBalance = True
 
-buyOrders = {}
-buyOrderQuantity = {}
-sellOrders = []
+
+
 
 
 
@@ -67,23 +179,29 @@ def truncate(number) -> Decimal:
     return Decimal(math.trunc(Decimal(stepper) * Decimal(number)) / Decimal(stepper))
 
 def createOrder(type,quantity,price):
-    currentprice = round(getCurrentPrice(),2)
+    currentprice = round(getCurrentPrice(),symboldata.pricePrecision)
     if type == "buy":
         neworder = exchange.createOrder(symbol,"limit","buy",quantity,price)
         response = neworder['id']
-        saveOrder(response,price,quantity)
+
+        ordersDict[f'{response}'] = {
+            'side':'buy',
+            'quantity':f'{quantity}',
+            'price':{f'price'},
+            'status':'open'
+            }
+
     if type == "sell":
         neworder = exchange.createOrder(symbol,"limit","sell",quantity,price)
         response = neworder['id']
-        sellOrders.insert(0,response)
-        buyOrders.pop(max(buyOrders, key=buyOrders.get))
+        ordersDict.pop(f'{response}')
     sendMessage(f"Created {'BUY' if type=='buy' else 'SELL'} order at {price} \nQuantity is {quantity}\nCurrent balance is {getBalance()}\nCurrent price is {currentprice}")
 
 
 
-def saveOrder(orderid,price,quantity=0):
-    buyOrders[orderid] = price
-    #buyOrderQuantity[orderid] = quantity
+# def saveOrder(orderid,price,quantity=0):
+#     buyOrders[orderid] = price
+#     #buyOrderQuantity[orderid] = quantity
 
 def calculateProfit(cost):
     sellTotal = cost
@@ -92,16 +210,21 @@ def calculateProfit(cost):
     totalprofit = sellTotal - buyTotal
     global totalProfitSinceStartup
     totalProfitSinceStartup += totalprofit
-    return round(totalprofit,2)
+    return round(totalprofit,3)
 
 def getSellPriceHighestBuyOrder():
-    if buyOrders:
-        highestValue = max(buyOrders.values())
-        sellPrice = Decimal(truncate(highestValue * Decimal(((gridperc/100)+1))))
-        return round(sellPrice,2)
+    if ordersDict:
+        maxValue = None
+        for x in ordersDict.values():
+            print(max(ordersDict[x]['price']))
+            maxValue = max(x)
+        sellPrice = Decimal(truncate(maxValue * Decimal(((gridperc/100)+1))))
+        return round(sellPrice,3)
 
 
 def checkSellOrder():
+    global apr
+    global mayAdapt
     if len(sellOrders) > 0:
         try:
             order = exchange.fetchOrder(sellOrders[0], symbol = symbol, params = {})
@@ -111,27 +234,11 @@ def checkSellOrder():
                 timeElapsedInHours = timeElapsed / 3600
                 profitPerHour = Decimal(totalProfitSinceStartup) / Decimal(timeElapsedInHours)
                 apr = round(((profitPerHour*8760/startBalance)*100),2)
-                sendMessage(f"Sell order filled\nYour profit in this trade: {calculateProfit(Decimal(order['cost']))}\nYour total profit since bot start-up: {totalProfitSinceStartup}\nRuntime: {round(timeElapsed,2)} seconds\nProfit per hour: {round(profitPerHour,2)}\nAPR: {apr}")
+                sendMessage(f"Sell order filled\nYour profit in this trade: {calculateProfit(Decimal(order['cost']))}\nYour total profit since bot start-up: {totalProfitSinceStartup}\nRuntime: {round(timeElapsedInHours,2)} hours\nProfit per hour: {round(profitPerHour,2)}\nAPR: {apr}\nTarget APR: {config.target_apr}")
                 sellOrders.pop(0)
+                mayAdapt = True
         except Exception as e: print(e)
 
-
-
-
-def balanceChecker():
-    try:
-            currentprice = getCurrentPrice()
-            balance = getBalance()
-            buyorder = Decimal(getQuantity())*currentprice
-            global enoughBalance
-            if Decimal(balance) < buyorder:
-                enoughBalance = False
-                print(f"Insufficient funds to create buy orders")
-                sendMessage(f"Insufficient funds to create buy orders")
-            else:
-                enoughBalance = True
-    except Exception as e: 
-        print(e) 
 
 
 
@@ -146,7 +253,7 @@ round_to_tenths = [truncate(num) for num in stepprice]
 
 def startup():
     #balanceChecker()
-    if enoughBalance == True:
+    if enoughBalance :
             counter = 0
             print(f'Creating buy orders...')
             #autoBuyBNB()
@@ -169,7 +276,7 @@ def connectivityCheck():
         isAPIAvailable = False
         
 # def autoBuyBNB():
-#     if(AUTO_BUY_BNB == True):
+#     if(AUTO_BUY_BNB ):
 #         sleep(randint(1,5))
 #         try:
 #             balance = client.get_asset_balance(asset='BNB')['free']
@@ -199,8 +306,7 @@ def job():
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     connectivityCheck()
-    if isAPIAvailable == True and state == True:
-        balanceChecker()
+    if isAPIAvailable  and state :
         checkSellOrder()
         print(f"{dt_string} Checking if orders have been filled...")         
         try:
@@ -211,7 +317,7 @@ def job():
                     print(f"{dt_string} Order filled, calculating sell price...")
                     try:
                         marketStructure = exchange.markets[symbol]
-                        lenstr = 3
+                        lenstr = symboldata.basePrecision
                         createOrder("sell",round(Decimal(order['filled']),lenstr),getSellPriceHighestBuyOrder())
                         #setDust()
                     except Exception as e: 
@@ -224,7 +330,7 @@ def job():
 
         
         print("Checking if bot can create new buy orders...")
-        if enoughBalance == True:
+        if enoughBalance :
             if len(buyOrders) < grids and len(buyOrders) != 0:
                     print(f"Can create new buy order(s)")
                     try:
@@ -237,41 +343,41 @@ def job():
 
         
         print(f'Checking if orders are still inside range')
-        if 1 > 0:
-            try:
-                currentSetPrice = truncate(getCurrentPrice()-stepsize)
-                maxBuyOrder = Decimal(max(buyOrders.values()))
-                threshold = (maxBuyOrder)*(1+(Decimal(gridperc)/100))
-                if (Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(gridperc)/100))) and (order['status'] == 'open'):
+        try:
+            currentSetPrice = truncate(getCurrentPrice()-stepsize)
+            maxBuyOrder = Decimal(max(buyOrders.values()))
+            threshold = (maxBuyOrder)*(1+(Decimal(gridperc)/100))
+            if (Decimal(currentSetPrice) > Decimal(max(buyOrders.values()))*(1+(Decimal(gridperc)/100))) and (order['status'] == 'open'):
+                try:
+                    print(f"{dt_string} Cancelling lowest order and bringing it on top")
+                    sendMessage('Cancelling lowest order and bringing it on top')
+                    orderToPop = min(buyOrders, key=buyOrders.get)
+                    print(str(orderToPop))
+                    exchange.cancel_order (str(orderToPop),symbol=symbol)
                     try:
-                        print(f"{dt_string} Cancelling lowest order and bringing it on top")
-                        sendMessage('Cancelling lowest order and bringing it on top')
-                        orderToPop = min(buyOrders, key=buyOrders.get)
-                        print(str(orderToPop))
-                        exchange.cancel_order (str(orderToPop),symbol=symbol)
-                        try:
-                            order = exchange.fetchOrder(orderToPop, symbol = symbol, params = {})
-                            filledQuantity = order['filled']
-                            if filledQuantity > 0:
-                                if exchange.has['createMarketOrder']:
-                                    exchange.createOrder(symbol,'market','sell',filledQuantity,{})
-                        except Exception as e:
-                                sendMessage(str(e))
-                                buyOrders.pop(orderToPop)
-                        
-                        buyOrders.pop(orderToPop)
-                
-                    #adding buy order
-                        createOrder("buy",getQuantity(),Decimal(max(buyOrders.values()))*(1+(Decimal(gridperc)/100)))
-                    except ccxt.ExchangeError as e:
-                        
-                        buyOrders.pop(orderToPop)
-                        
+                        order = exchange.fetchOrder(orderToPop, symbol = symbol, params = {})
+                        filledQuantity = order['filled']
+                        if filledQuantity > 0:
+                            if exchange.has['createMarketOrder']:
+                                exchange.createOrder(symbol,'market','sell',filledQuantity,{})
                     except Exception as e:
-                        pass
+                            sendMessage(str(e))
+                            buyOrders.pop(orderToPop)
                     
-            except Exception as e:
-                print(e)
+                    buyOrders.pop(orderToPop)
+            
+                #adding buy order
+                    global currentQuantity
+                    createOrder("buy",getQuantity(),Decimal(max(buyOrders.values()))*(1+(Decimal(gridperc)/100)))
+                except ccxt.ExchangeError as e:
+                    
+                    buyOrders.pop(orderToPop)
+                    
+                except Exception as e:
+                    pass
+                
+        except Exception as e:
+            print(e)
 
 def dailyUpdate():
     currentBalance = Decimal(getBalance())
