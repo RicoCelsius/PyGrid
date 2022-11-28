@@ -30,6 +30,6 @@ def getPricePrecision():
     return marketStructure['precision']['price']
 
 minNotional = getMinimalQuantity()
-basePrecision = getQuote()
+basePrecision = getBasePrecision()
 pricePrecision = getPricePrecision()
 quote = getQuote()
