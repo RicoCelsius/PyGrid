@@ -8,10 +8,18 @@ api_key_secret=os.getenv("API_KEY_SECRET")
 tg_token=os.getenv("TG_TOKEN")
 tg_chat_id=os.getenv("TG_CHAT_ID")
 
+
+mysql_enabled=True
+mysql_database=os.getenv("MYSQL_DATABASE")
+mysql_host=os.getenv("MYSQL_HOST")
+mysql_username=os.getenv("MYSQL_USERNAME")
+mysql_password=os.getenv("MYSQL_PASSWORD")
+
+
 exchange = 'binance'
 symbol = "BTC/BUSD"
 post_order_only=False
-dollarquantity = 12 #set COMPOUND to False if you want to use this.
+dollarquantity = 11 #set COMPOUND to False if you want to use this.
 apr_target_mode = False #either apr_target or normal
 target_apr = 50
 buy_protection=False
@@ -19,15 +27,12 @@ max_bought_before_cooldown=5
 compound = False #Set to True if you want to use a percentage of your wallet instead of an absolute number.
 compound_wallet_perc = 1 #percentage of USDT in your wallet to use for creating buy orders. 
 gridperc = 0.01
-grids = 4
+grids = 5
 
-tg_enabled = True #current command(s): /balance
+tg_enabled = False #current command(s): /balance
 auto_buy_bnb = False #automatically buys BNB if there's not enough left in your wallet
 sub_account = ""
 
 
-mysql_enabled=False
-mysql_host=""
-mysql_database=""
-mysql_username=""
-mysql_password=""
+
+

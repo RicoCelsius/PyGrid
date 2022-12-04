@@ -5,7 +5,7 @@ import threading
 import time
 
 
-
+isBotPaused = False
 
 
 
@@ -18,11 +18,18 @@ def start(update: Update, context: CallbackContext) -> None:
         reply_markup=ForceReply(selective=True),
     )
 
+
 def sendMessage(tekst) -> None:
     if tg_enabled == True:
         updater = Updater(token=tg_token, use_context=True)
         updater.bot.send_message(chat_id=tg_chat_id,text=tekst)
 
+
+def pause(update: Update, context: CallbackContext) -> None:
+    """Send a message when the command /start is issued."""
+    global isBotPaused
+    isBotPaused = False if isBotPaused else True
+    sendMessage(f'Bot is now {"paused" if {isBotPaused} else "not paused"}')
 
 
 def main() -> None:
@@ -31,6 +38,7 @@ def main() -> None:
         updater = Updater(token=tg_token, use_context=True)
         dispatcher = updater.dispatcher
         dispatcher.add_handler(CommandHandler("start", start))
+        dispatcher.add_handler(CommandHandler("pause", pause))
         updater.start_polling()
         updater.bot.send_message(chat_id=tg_chat_id,text=f'Bot started succesfully! Bot created {grids} buy orders!')
         #updater.idle() #commented out for threading
